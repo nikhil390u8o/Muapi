@@ -6,31 +6,36 @@ app = FastAPI()
 
 @app.get("/")
 def home():
-    return {"status": "API is Running", "endpoint": "/stream?query={your_search}"}
+    return {
+        "status": "API is Running", 
+        "usage": "/stream?query=song_name_or_url"
+    }
 
 @app.get("/stream")
 def get_video_info(query: str):
-    # Cookie path handling
     cookie_path = 'cookies.txt'
     
+    # yt-dlp configurations
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
-        'format': 'best', # 'best' ya 'b' Render ke liye safe hai
+        # 'best' format ensures a direct URL is returned
+        'format': 'best', 
         'default_search': 'ytsearch1',
         'nocheckcertificate': True,
         'geo_bypass': True,
     }
 
+    # Cookies check
     if os.path.exists(cookie_path):
         ydl_opts['cookiefile'] = cookie_path
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Info extract karein
+            # Metadata extraction
             info = ydl.extract_info(query, download=False)
             
-            # Agar search hai toh 'entries' list mein hogi
+            # Agar query search hai, toh pehla result uthao
             if 'entries' in info:
                 if not info['entries']:
                     raise HTTPException(status_code=404, detail="No results found")
@@ -38,29 +43,33 @@ def get_video_info(query: str):
             else:
                 video_data = info
 
-            # Sabse stable URL nikaalne ka tarika
-            video_url = video_data.get('url')
+            # Extracting all necessary fields
             formats = video_data.get('formats', [])
             
-            # Sirf Audio URL filter (m4a/mp3 type)
+            # 1. Direct Video+Audio URL
+            video_url = video_data.get('url')
+            
+            # 2. Extract best Audio-only URL (Filter for formats with no video)
             audio_url = next(
                 (f['url'] for f in formats if f.get('vcodec') == 'none' and f.get('acodec') != 'none'), 
-                video_url # Fallback agar audio format na mile
+                video_url # Fallback to main URL if audio-only not found
             )
 
             return {
                 "title": video_data.get('title'),
-                "duration": video_data.get('duration'), # in seconds
+                "duration": video_data.get('duration'), # In seconds
                 "thumbnail": video_data.get('thumbnail'),
                 "video_url": video_url,
                 "audio_url": audio_url,
-                "channel": video_data.get('uploader')
+                "uploader": video_data.get('uploader'),
+                "views": video_data.get('view_count')
             }
+            
     except Exception as e:
-        # Pura error message dikhane ke liye
         raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
+    # Render ke liye port handling
+    port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
