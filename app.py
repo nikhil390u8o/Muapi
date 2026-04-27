@@ -77,5 +77,5 @@ def stream():
         return {"error": str(e)}, 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 2000))
+    port = int(os.environ.get("PORT", 20000))
     app.run(host="0.0.0.0", port=port)
