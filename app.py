@@ -3,6 +3,10 @@ import yt_dlp
 import os
 
 app = FastAPI()
+@app.get("/")
+def home():
+    return {"status": "API is Running", "endpoint": "/stream?query={your_search}"}
+
 
 @app.get("/stream")
 def get_video_info(query: str):
