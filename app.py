@@ -16,15 +16,16 @@ def get_video_info(query: str):
     cookie_path = 'cookies.txt'
     
     # yt-dlp configurations
-    ydl_opts = {
+        ydl_opts = {
         'quiet': True,
         'no_warnings': True,
-        # 'best' format ensures a direct URL is returned
-        'format': 'best', 
+        # 'best' की जगह 'ba/b' (best audio या जो भी बेस्ट हो) यूज़ करें
+        'format': 'bestaudio/best', 
         'default_search': 'ytsearch1',
         'nocheckcertificate': True,
         'geo_bypass': True,
     }
+
 
     # Cookies check
     if os.path.exists(cookie_path):
