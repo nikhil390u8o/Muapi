@@ -1,68 +1,98 @@
 import express from "express";
 import ytsr from "ytsr";
-import { exec } from "child_process";
+import { Innertube } from "youtubei.js";
 
 const app = express();
 const PORT = process.env.PORT || 6000;
 
-// FAST search (no yt-dlp here)
+let yt = null;
+
+// init youtube client
+async function getYT() {
+  if (!yt) {
+    yt = await Innertube.create({
+      client_type: "ANDROID",
+    });
+  }
+  return yt;
+}
+
+/* ---------------- SEARCH API ---------------- */
 app.get("/search", async (req, res) => {
   try {
     const q = req.query.q;
+    if (!q) return res.json({ error: "query required" });
+
     const search = await ytsr(q, { limit: 10 });
 
-    const results = search.items
+    const videos = search.items
       .filter(i => i.type === "video")
-      .map(v => ({
-        id: v.id,
-        title: v.title,
-        duration: v.duration,
-        thumbnail: v.bestThumbnail.url,
-        streamApi: `/stream/${v.id}`
-      }));
+      .slice(0, 10);
 
-    res.json({ query: q, count: results.length, results });
+    const results = videos.map(v => ({
+      id: v.id,
+      title: v.title,
+      duration: v.duration || null,
+      thumbnail: v.bestThumbnail?.url,
+      streamApi: `/stream/${v.id}`
+    }));
+
+    res.json({
+      query: q,
+      count: results.length,
+      results
+    });
+
   } catch (e) {
-    res.json({ error: e.message });
+    res.status(500).json({ error: e.message });
   }
 });
 
+/* ---------------- STREAM API (STABLE) ---------------- */
+app.get("/stream/:id", async (req, res) => {
+  try {
+    const yt = await getYT();
+    const id = req.params.id;
 
-// STREAM endpoint (yt-dlp used HERE only)
-app.get("/stream/:id", (req, res) => {
-  const id = req.params.id;
+    const info = await yt.getInfo(id);
 
-  exec(
-    `./yt-dlp -j https://www.youtube.com/watch?v=${id}`,
-    { maxBuffer: 1024 * 1024 * 10 },
-    (err, stdout) => {
-      if (err) {
-        return res.json({ error: err.message });
-      }
+    const formats = info.streaming_data?.formats || [];
+    const adaptive = info.streaming_data?.adaptive_formats || [];
 
-      try {
-        const data = JSON.parse(stdout);
-        const formats = data.formats;
+    // AUDIO (best)
+    const audio = adaptive
+      .filter(f => f.audio_codec && !f.video_codec)
+      .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
 
-        const audio = formats
-          .filter(f => f.acodec !== "none" && f.vcodec === "none")
-          .sort((a, b) => (b.abr || 0) - (a.abr || 0))[0];
+    // VIDEO (best)
+    const video = formats
+      .filter(f => f.video_codec && f.audio_codec)
+      .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
 
-        const video = formats
-          .filter(f => f.vcodec !== "none" && f.acodec === "none")
-          .sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+    res.json({
+      videoId: id,
+      audioUrl: audio?.url || null,
+      videoUrl: video?.url || null,
+      thumbnails: info.basic_info?.thumbnail || []
+    });
 
-        res.json({
-          audioUrl: audio?.url || null,
-          videoUrl: video?.url || null,
-          thumbnails: data.thumbnails || []
-        });
-
-      } catch (e) {
-        res.json({ error: "yt-dlp parse error" });
-      }
-    }
-  );
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.listen(PORT, () => console.log("API running on", PORT));
+/* ---------------- ROOT ---------------- */
+app.get("/", (req, res) => {
+  res.json({
+    name: "Stable Music API",
+    status: "running",
+    endpoints: {
+      search: "/search?q=query",
+      stream: "/stream/:id"
+    }
+  });
+});
+
+app.listen(PORT, () => {
+  console.log("API running on", PORT);
+});
