@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: muapi
+    env: node
+    buildCommand: |
+      apt-get update
+      apt-get install -y yt-dlp ffmpeg
+      npm install
+    startCommand: node index.js
