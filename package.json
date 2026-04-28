@@ -1,5 +1,5 @@
 {
-  "name": "music-video-api",
+  "name": "muapi",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -8,6 +8,6 @@
   "dependencies": {
     "express": "^4.21.0",
     "cors": "^2.8.5",
-    "youtubei.js": "^17.0.1"
+    "youtubei.js": "^13.4.1"
   }
 }
