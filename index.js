@@ -1,5 +1,4 @@
 import express from 'express';
-import fetch from 'node-fetch';
 import { Innertube } from 'youtubei.js';
 
 const app = express();
