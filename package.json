@@ -1,14 +1,8 @@
 {
-  "name": "music-video-api",
-  "version": "2.0.0",
+  "name": "muapi",
   "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
   "dependencies": {
     "express": "^4.19.2",
-    "youtubei.js": "^10.5.0",
-    "node-fetch": "^3.3.2"
+    "ytsr": "^3.8.4"
   }
 }
