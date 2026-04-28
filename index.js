@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 6000;
 // yt-dlp for ONE video only
 function getStreamUrls(id) {
   return new Promise((resolve, reject) => {
-    exec(`./yt-dlp -j https://www.youtube.com/watch?v=${id}`,
+    exec(`yt-dlp -j https://www.youtube.com/watch?v=${id}`,
       { maxBuffer: 1024 * 1024 * 10 },
       (err, stdout) => {
         if (err) return reject(err);
@@ -52,13 +52,16 @@ app.get("/search", async (req, res) => {
 });
 
 // stream endpoint (yt-dlp here)
-app.get("/stream/:id", async (req, res) => {
-  try {
-    const data = await getStreamUrls(req.params.id);
-    res.json(data);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+const { exec } = require("child_process");
+
+app.get("/stream/:id", (req, res) => {
+  const id = req.params.id;
+
+  exec(`yt-dlp -f bestaudio -g https://www.youtube.com/watch?v=${id}`, (err, stdout) => {
+    if (err) return res.json({ error: err.message });
+
+    res.json({ audio_url: stdout.trim() });
+  });
 });
 
 app.listen(PORT, () => console.log("API running"));
