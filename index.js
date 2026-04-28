@@ -1,114 +1,72 @@
-import express from 'express';
-import { Innertube } from 'youtubei.js';
+import express from "express";
+import ytsr from "ytsr";
+import { exec } from "child_process";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 6000;
 
-let youtube = null;
+// yt-dlp command helper
+function getStreamUrls(id) {
+  return new Promise((resolve, reject) => {
+    const cmd = `yt-dlp -j https://www.youtube.com/watch?v=${id}`;
+    exec(cmd, (err, stdout) => {
+      if (err) return reject(err);
 
-async function getYoutube() {
-  if (!youtube) {
-    youtube = await Innertube.create({
-      retrieve_player: true,
-      client_type: 'ANDROID',
+      const data = JSON.parse(stdout);
+
+      // best video + best audio
+      const formats = data.formats;
+
+      const audio = formats.find(f => f.acodec !== "none" && f.vcodec === "none");
+      const video = formats.find(f => f.vcodec !== "none" && f.acodec !== "none");
+
+      resolve({
+        audioUrl: audio?.url || null,
+        videoUrl: video?.url || null,
+        thumbnails: data.thumbnails || []
+      });
     });
-  }
-  return youtube;
+  });
 }
 
-/* -------------------- SEARCH -------------------- */
-
-app.get('/search', async (req, res) => {
+app.get("/search", async (req, res) => {
   try {
-    const query = req.query.q;
-    if (!query) return res.json({ error: 'Query parameter required' });
+    const q = req.query.q;
+    if (!q) return res.json({ error: "query required" });
 
-    const yt = await getYoutube();
-    const search = await yt.search(query);
+    const search = await ytsr(q, { limit: 10 });
 
-    const videos = search.videos.slice(0, 10);
+    const videos = search.items.filter(i => i.type === "video").slice(0, 10);
 
     const results = [];
 
     for (const v of videos) {
-      try {
-        const info = await yt.getInfo(v.id, { client: 'ANDROID' });
+      const streams = await getStreamUrls(v.id);
 
-        if (!info.streaming_data) continue;
-
-        const audioFmt = info.chooseFormat({ type: 'audio', quality: 'best' });
-        const avFmt = info.chooseFormat({ type: 'videoandaudio', quality: 'best' });
-
-        if (!audioFmt || !avFmt) continue;
-
-        const audioUrl = await audioFmt.decipher(yt.session.player);
-        const videoUrl = await avFmt.decipher(yt.session.player);
-
-        results.push({
-          id: v.id,
-          title: v.title.text,
-          duration: v.duration.text,
-          author: {
-            name: v.author.name,
-            channel_url: `https://www.youtube.com/channel/${v.author.id}`
-          },
-          thumbnail: `https://img.youtube.com/vi/${v.id}/hqdefault.jpg`,
-          thumbnails: v.thumbnails,
-          videoUrl,
-          audioUrl
-        });
-
-      } catch (e) {
-        // skip broken videos
-      }
+      results.push({
+        id: v.id,
+        title: v.title,
+        duration: v.duration,
+        author: {
+          name: v.author.name,
+          channel_url: v.author.url
+        },
+        thumbnail: v.bestThumbnail.url,
+        thumbnails: streams.thumbnails,
+        videoUrl: streams.videoUrl,
+        audioUrl: streams.audioUrl
+      });
     }
 
     res.json({
-      query,
+      query: q,
       count: results.length,
       results
     });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* -------------------- STREAM (FIXED) -------------------- */
-
-app.get('/stream/:videoId', async (req, res) => {
-  try {
-    const { videoId } = req.params;
-    const type = req.query.type || 'audio';
-
-    const yt = await getYoutube();
-    const info = await yt.getInfo(videoId, { client: 'ANDROID' });
-
-    const format = info.chooseFormat({ type, quality: 'best' });
-    const url = await format.decipher(yt.session.player);
-
-    const r = await fetch(url);
-
-    res.setHeader('Content-Type', format.mime_type);
-    res.setHeader('Cache-Control', 'no-cache');
-
-    r.body.pipe(res);
 
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-/* -------------------- ROOT -------------------- */
-
-app.get('/', (_, res) => {
-  res.json({
-    name: 'Music API',
-    endpoints: {
-      search: '/search?q=query',
-      stream: '/stream/:id?type=audio|videoandaudio'
-    }
-  });
-});
-
-app.listen(PORT, () => console.log('Running on', PORT));
+app.listen(PORT, () => console.log("API running on", PORT));
