@@ -52,16 +52,17 @@ app.get("/search", async (req, res) => {
 });
 
 // stream endpoint (yt-dlp here)
-const { exec } = require("child_process");
-
 app.get("/stream/:id", (req, res) => {
   const id = req.params.id;
 
-  exec(`yt-dlp -f bestaudio -g https://www.youtube.com/watch?v=${id}`, (err, stdout) => {
-    if (err) return res.json({ error: err.message });
+  exec(
+    `yt-dlp -f bestaudio -g https://www.youtube.com/watch?v=${id}`,
+    (err, stdout) => {
+      if (err) return res.json({ error: err.message });
 
-    res.json({ audio_url: stdout.trim() });
-  });
+      res.json({ audio_url: stdout.trim() });
+    }
+  );
 });
 
 app.listen(PORT, () => console.log("API running"));
