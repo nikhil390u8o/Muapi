@@ -1,14 +1,14 @@
 {
-  "name": "music-api",
-  "type": "module",
+  "name": "stable-music-api",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "ytsr": "^3.8.4",
-    "youtubei.js": "^11.0.0"
+    "express": "^4.19.2",
+    "ytsr": "^3.10.2",
+    "youtubei.js": "^10.0.0"
   }
 }
