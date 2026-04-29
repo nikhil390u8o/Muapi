@@ -10,7 +10,8 @@ const PORT = process.env.PORT || 3000;
 const baseArgs = [
   '--no-warnings',
   '--cookies', '/etc/secrets/.cookies.txt',
-  '--extractor-args', 'youtube:player_client=web,default',
+  '--no-cookies-from-browser',
+  '--extractor-args', 'youtube:player_client=android_vr,web',
 ];
 
 app.use(cors());
@@ -55,7 +56,7 @@ async function getUrls(videoId) {
     `https://www.youtube.com/watch?v=${videoId}`,
     '--dump-json',
     '--skip-download',
-    '-f', 'bestaudio,bestvideo'
+    '-f', 'bestaudio/best'
   );
 
   const lines = raw.split('\n').filter(Boolean);
