@@ -8,10 +8,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const baseArgs = [
   '--no-warnings',
-  '--cookies', '/etc/secrets/.cookies.txt',          // ← ye add karo
+  '--cookies', '/etc/secrets/.cookies.txt',
   '--extractor-args', 'youtube:player_client=web,default',
 ];
-
 app.use(cors());
 app.use(express.json());
 
