@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: muapi
+    runtime: node
+    buildCommand: npm install && pip install yt-dlp
+    startCommand: node index.js
+    envVars:
+      - key: PORT
+        value: 10000
