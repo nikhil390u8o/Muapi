@@ -3,39 +3,37 @@ import ytsr from "ytsr";
 import { Innertube } from "youtubei.js";
 
 const app = express();
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 3000;
 
-let yt = null;
+let yt;
 
-// init youtube client
 async function getYT() {
   if (!yt) {
     yt = await Innertube.create({
-      client_type: "ANDROID",
+      client_type: "ANDROID"
     });
   }
   return yt;
 }
 
-/* ---------------- SEARCH API ---------------- */
+/* ───────── SEARCH API (FAST + STABLE) ───────── */
 app.get("/search", async (req, res) => {
   try {
     const q = req.query.q;
-    if (!q) return res.json({ error: "query required" });
+    if (!q) return res.status(400).json({ error: "query required" });
 
     const search = await ytsr(q, { limit: 10 });
 
-    const videos = search.items
-      .filter(i => i.type === "video")
-      .slice(0, 10);
-
-    const results = videos.map(v => ({
-      id: v.id,
-      title: v.title,
-      duration: v.duration || null,
-      thumbnail: v.bestThumbnail?.url,
-      streamApi: `/stream/${v.id}`
-    }));
+    const results = search.items
+      .filter(v => v.type === "video")
+      .slice(0, 10)
+      .map(v => ({
+        id: v.id,
+        title: v.title,
+        duration: v.duration || null,
+        thumbnail: v.bestThumbnail?.url || "",
+        streamApi: `/stream/${v.id}`
+      }));
 
     res.json({
       query: q,
@@ -48,32 +46,47 @@ app.get("/search", async (req, res) => {
   }
 });
 
-/* ---------------- STREAM API (STABLE) ---------------- */
+/* ───────── STREAM API (NO YT-DLP, NO COOKIES) ───────── */
 app.get("/stream/:id", async (req, res) => {
   try {
-    const yt = await getYT();
     const id = req.params.id;
 
+    const yt = await getYT();
     const info = await yt.getInfo(id);
 
-    const formats = info.streaming_data?.formats || [];
-    const adaptive = info.streaming_data?.adaptive_formats || [];
+    const formats = info.streaming_data?.adaptive_formats || [];
 
-    // AUDIO (best)
-    const audio = adaptive
-      .filter(f => f.audio_codec && !f.video_codec)
+    // AUDIO BEST
+    const audio = formats
+      .filter(f => f.mime_type?.includes("audio"))
       .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
 
-    // VIDEO (best)
+    // VIDEO BEST
     const video = formats
-      .filter(f => f.video_codec && f.audio_codec)
-      .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+      .filter(f => f.mime_type?.includes("video"))
+      .sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+
+    if (!audio && !video) {
+      return res.status(500).json({ error: "stream not available" });
+    }
 
     res.json({
-      videoId: id,
-      audioUrl: audio?.url || null,
-      videoUrl: video?.url || null,
-      thumbnails: info.basic_info?.thumbnail || []
+      query: id,
+      count: 1,
+      results: [
+        {
+          id,
+          title: info.basic_info?.title || "",
+          duration: info.basic_info?.duration || "",
+          author: {
+            name: info.basic_info?.author || "",
+            channel_url: ""
+          },
+          thumbnail: `https://i.ytimg.com/vi/${id}/hq720.jpg`,
+          audio_url: audio?.url || null,
+          video_url: video?.url || null
+        }
+      ]
     });
 
   } catch (e) {
@@ -81,7 +94,7 @@ app.get("/stream/:id", async (req, res) => {
   }
 });
 
-/* ---------------- ROOT ---------------- */
+/* ───────── HOME ───────── */
 app.get("/", (req, res) => {
   res.json({
     name: "Stable Music API",
@@ -94,5 +107,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("API running on", PORT);
+  console.log("Server running on port", PORT);
 });
