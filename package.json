@@ -9,6 +9,6 @@
   "dependencies": {
     "express": "^4.19.2",
     "ytsr": "^3.8.0",
-    "youtubei.js": "^10.0.0"
+    "youtubei.js": "17.0.1"
   }
 }
