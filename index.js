@@ -6,6 +6,11 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 const app = express();
 const PORT = process.env.PORT || 3000;
+const baseArgs = [
+  '--no-warnings',
+  '--cookies', '/etc/secrets/cookies.txt',          // ← ye add karo
+  '--extractor-args', 'youtube:player_client=web,default',
+];
 
 app.use(cors());
 app.use(express.json());
