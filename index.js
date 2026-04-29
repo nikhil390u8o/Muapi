@@ -95,7 +95,7 @@ async function getUrls(videoId) {
 // ── ROOT ──────────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({
-    name: 'MuAPI', version: '6.0',
+    name: 'MuAPI', version: '6.1',
     endpoints: {
       search:  '/search?q=song+name&limit=5',
       stream:  '/stream/:videoId',
