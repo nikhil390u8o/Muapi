@@ -1,302 +1,214 @@
-// server.js - Music Video API - FIXED VERSION
+// Music Video API - Clean Rewrite v3
 import express from 'express';
 import { Innertube } from 'youtubei.js';
 import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 app.use(cors());
 app.use(express.json());
 
-// Global yt instance - ek hi baar create karo
+// ============ YT SESSION ============
 let yt = null;
-let ytInitialized = false;
 
 async function getYT() {
-  if (yt && ytInitialized) return yt;
-  yt = await Innertube.create({
-    // Optional: agar cache set karna ho to
-    // cache: new UniversalCache(false)
-  });
-  ytInitialized = true;
-  console.log('[YT] Session created successfully');
+  if (yt) return yt;
+  console.log('[YT] Creating session...');
+  yt = await Innertube.create({});
+  console.log('[YT] Session ready');
   return yt;
 }
 
-// Initialize on startup
-getYT().catch(err => {
-  console.error('[YT] Initial creation failed:', err.message);
-  ytInitialized = false;
+getYT().catch(err => { console.error('[YT] Startup failed:', err.message); yt = null; });
+
+// ============ CORE: getBasicInfo + chooseFormat + decipher ============
+// This is the proven approach - same as what /stream TRY3 does
+async function getStreamUrls(videoId) {
+  const instance = await getYT();
+  let info;
+
+  try {
+    info = await instance.getBasicInfo(videoId, { client: 'ANDROID' });
+  } catch (e) {
+    console.log(`[URL] ANDROID failed ${videoId}: ${e.message}`);
+    try {
+      info = await instance.getBasicInfo(videoId, { client: 'WEB' });
+    } catch (e2) {
+      console.log(`[URL] WEB also failed ${videoId}: ${e2.message}`);
+      return { audio: null, video: null };
+    }
+  }
+
+  if (!info?.streaming_data) {
+    console.log(`[URL] No streaming_data for ${videoId}`);
+    return { audio: null, video: null };
+  }
+
+  let audioFmt = null;
+  let videoFmt = null;
+
+  try {
+    const af = info.chooseFormat({ type: 'audio', quality: 'best' });
+    if (af) {
+      af.url = await af.decipher(instance.session.player);
+      if (af.url) { audioFmt = af; console.log(`[URL] audio OK ${videoId}`); }
+    }
+  } catch (e) { console.log(`[URL] audio decipher failed ${videoId}: ${e.message}`); }
+
+  try {
+    const vf = info.chooseFormat({ type: 'video', quality: 'best' });
+    if (vf) {
+      vf.url = await vf.decipher(instance.session.player);
+      if (vf.url) { videoFmt = vf; console.log(`[URL] video OK ${videoId}`); }
+    }
+  } catch (e) { console.log(`[URL] video decipher failed ${videoId}: ${e.message}`); }
+
+  return { audio: audioFmt, video: videoFmt };
+}
+
+// ============ ROOT ============
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Music Video API', version: '3.0',
+    endpoints: {
+      search: '/search?q=query&limit=5',
+      stream: '/stream/:videoId?type=audio|video',
+      details: '/details/:videoId',
+      info: '/info/:videoId'
+    }
+  });
 });
 
-// ============ SEARCH ENDPOINT ============
+// ============ SEARCH — audio+video URLs inline ============
 app.get('/search', async (req, res) => {
   try {
     const q = req.query.q;
-    if (!q) return res.status(400).json({ error: 'Query parameter "q" is required' });
-
-    // limit=5 default, max 10 (zyada hoga to bahut slow)
+    if (!q) return res.status(400).json({ error: 'Query "q" required' });
     const limit = Math.min(parseInt(req.query.limit) || 5, 10);
 
-    const instance = yt || await getYT();
+    const instance = await getYT();
     const search = await instance.search(q);
 
     let videos = [];
     if (search.results) {
-      videos = search.results
-        .filter(item => item.type === 'Video')
-        .slice(0, limit);
+      videos = search.results.filter(item => item.type === 'Video').slice(0, limit);
     }
 
-    // Helper: get stream URL with full fallback
-    async function getStreamUrl(videoId, type) {
-      // TRY 1: ANDROID getStreamingData
-      try {
-        const fmt = await instance.getStreamingData(videoId, { type, quality: 'best', client: 'ANDROID' });
-        if (fmt?.url) return fmt;
-      } catch (e1) {
-        console.log(`[SEARCH-STREAM] ANDROID ${type} ${videoId}: ${e1.message}`);
-      }
-      // TRY 2: WEB getStreamingData
-      try {
-        const fmt = await instance.getStreamingData(videoId, { type, quality: 'best', client: 'WEB' });
-        if (fmt?.url) return fmt;
-      } catch (e2) {
-        console.log(`[SEARCH-STREAM] WEB ${type} ${videoId}: ${e2.message}`);
-      }
-      // TRY 3: getBasicInfo + chooseFormat + decipher
-      try {
-        const info = await instance.getBasicInfo(videoId, { client: 'ANDROID' });
-        if (info?.streaming_data) {
-          const fmt = info.chooseFormat({ type, quality: 'best' });
-          if (fmt) {
-            fmt.url = await fmt.decipher(instance.session.player);
-            if (fmt.url) return fmt;
-          }
-        }
-      } catch (e3) {
-        console.log(`[SEARCH-STREAM] BasicInfo ${type} ${videoId}: ${e3.message}`);
-      }
-      return null;
-    }
-
-    // Fetch audio + video sequentially per video (concurrent per video, sequential across videos)
     const results = [];
     for (const v of videos) {
+      const videoId = v.id;
       const thumb = v.thumbnail?.contents?.[0] ||
                     v.best_thumbnail ||
-                    { url: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg` };
+                    { url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` };
 
-      const [audioFmt, videoFmt] = await Promise.all([
-        getStreamUrl(v.id, 'audio'),
-        getStreamUrl(v.id, 'video')
-      ]);
+      const { audio: af, video: vf } = await getStreamUrls(videoId);
 
       results.push({
-        id: v.id,
+        id: videoId,
         title: v.title?.text || v.title || '',
         duration: v.duration?.seconds || v.duration || 0,
         duration_text: v.duration?.text || '',
         views: v.views || '',
         author: v.author?.name || v.author || '',
         thumbnail: thumb.url,
-        audio_url: audioFmt?.url || null,
-        video_url: videoFmt?.url || null,
-        audio_mime: audioFmt?.mime_type || null,
-        video_mime: videoFmt?.mime_type || null,
-        audio_bitrate: audioFmt?.bitrate || null,
-        video_resolution: videoFmt ? `${videoFmt.width}x${videoFmt.height}` : null
+        audio_url: af?.url || null,
+        video_url: vf?.url || null,
+        audio_mime: af?.mime_type || null,
+        video_mime: vf?.mime_type || null,
+        audio_bitrate: af?.bitrate || null,
+        video_resolution: (vf?.width && vf?.height) ? `${vf.width}x${vf.height}` : null
       });
     }
 
-    res.json({
-      query: q,
-      count: results.length,
-      results
-    });
+    res.json({ query: q, count: results.length, results });
 
   } catch (err) {
     console.error('[SEARCH ERROR]', err.message);
-    if (err.message?.includes('404') || err.message?.includes('403')) {
-      ytInitialized = false;
-      yt = null;
-    }
+    yt = null;
     res.status(500).json({ error: err.message });
   }
 });
 
-// ============ STREAM ENDPOINT - FIXED ============
+// ============ STREAM — single format URL ============
 app.get('/stream/:videoId', async (req, res) => {
   try {
     const { videoId } = req.params;
     const type = req.query.type || 'audio';
     const quality = req.query.quality || 'best';
-    
-    if (!videoId) {
-      return res.status(400).json({ error: 'Video ID is required' });
-    }
-    
-    let instance = yt;
-    if (!instance) {
-      instance = await getYT();
-    }
-    
+    if (!videoId) return res.status(400).json({ error: 'videoId required' });
+
+    const instance = await getYT();
     let format;
-    let info;
-    
-    // TRY 1: ANDROID client ke saath getStreamingData()
+
+    // TRY 1: ANDROID getStreamingData
     try {
       format = await instance.getStreamingData(videoId, {
         type: type === 'videoandaudio' ? 'video+audio' : type,
-        quality: quality,
-        client: 'ANDROID'
+        quality, client: 'ANDROID'
       });
-      console.log(`[STREAM] ANDROID client success for ${videoId}`);
-    } catch (err1) {
-      console.log(`[STREAM] ANDROID failed: ${err1.message}, trying WEB...`);
-      
-      // TRY 2: WEB client ke saath
+      console.log(`[STREAM] ANDROID OK ${videoId}`);
+    } catch (e1) {
+      console.log(`[STREAM] ANDROID failed: ${e1.message}`);
+      // TRY 2: WEB getStreamingData
       try {
         format = await instance.getStreamingData(videoId, {
           type: type === 'videoandaudio' ? 'video+audio' : type,
-          quality: quality,
-          client: 'WEB'
+          quality, client: 'WEB'
         });
-        console.log(`[STREAM] WEB client success for ${videoId}`);
-      } catch (err2) {
-        console.log(`[STREAM] WEB failed: ${err2.message}, trying getBasicInfo fallback...`);
-        
-        // TRY 3: getBasicInfo se info lo and manually extract
-        try {
-          info = await instance.getBasicInfo(videoId, { client: 'ANDROID' });
-          
-          if (!info.streaming_data) {
-            // TRY 4: WEB client ke saath
-            info = await instance.getBasicInfo(videoId, { client: 'WEB' });
-          }
-          
-          if (!info.streaming_data) {
-            throw new Error('Streaming data not available in any client');
-          }
-          
-          format = info.chooseFormat({
-            type: type === 'videoandaudio' ? 'video+audio' : type,
-            quality: quality
-          });
-          
-          if (!format) {
-            throw new Error(`No format found for type=${type} quality=${quality}`);
-          }
-          
-          // v17 mein decipher async hai!
-          format.url = await format.decipher(instance.session.player);
-        } catch (err3) {
-          // TRY 5: Session recreate karke try karo
-          console.log('[STREAM] All attempts failed, recreating session...');
-          ytInitialized = false;
-          yt = null;
-          instance = await getYT();
-          
-          format = await instance.getStreamingData(videoId, {
-            type: type === 'videoandaudio' ? 'video+audio' : type,
-            quality: quality,
-            client: 'ANDROID'
-          });
-        }
+        console.log(`[STREAM] WEB OK ${videoId}`);
+      } catch (e2) {
+        console.log(`[STREAM] WEB failed: ${e2.message}`);
+        // TRY 3: getBasicInfo + chooseFormat + decipher
+        let info = await instance.getBasicInfo(videoId, { client: 'ANDROID' }).catch(() =>
+          instance.getBasicInfo(videoId, { client: 'WEB' })
+        );
+        format = info.chooseFormat({ type: type === 'videoandaudio' ? 'video+audio' : type, quality });
+        if (!format) throw new Error(`No format for type=${type}`);
+        format.url = await format.decipher(instance.session.player);
       }
     }
-    
-    // --- RESPONSE ---
-    const responseData = {
-      id: videoId,
-      type: type,
-      quality: quality,
+
+    res.json({
+      id: videoId, type, quality,
       url: format.url,
       mime_type: format.mime_type,
-      container: format.container,
-      codec: format.codec,
       has_audio: format.has_audio,
       has_video: format.has_video,
       content_length: format.content_length,
       bitrate: format.bitrate,
       audio_sample_rate: format.audio_sample_rate,
-      audio_channels: format.audio_channels,
       width: format.width,
       height: format.height,
       fps: format.fps
-    };
-    
-    // Agar info available hai to aur details bhejo
-    if (info) {
-      responseData.title = info.basic_info?.title;
-      responseData.duration = info.basic_info?.duration;
-      responseData.thumbnail = info.basic_info?.thumbnail?.find(t => t.width >= 320)?.url || 
-                               info.basic_info?.thumbnail?.[0]?.url ||
-                               `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-    }
-    
-    res.json(responseData);
-    
+    });
+
   } catch (err) {
     console.error('[STREAM ERROR]', err.message);
-    if (err.message?.includes('404')) {
-      ytInitialized = false;
-      yt = null;
-    }
+    if (err.message?.includes('404')) yt = null;
     res.status(500).json({ error: err.message });
   }
 });
 
-// ============ DETAILS ENDPOINT - audio + video + info in ONE call ============
+// ============ DETAILS — full info + both URLs ============
 app.get('/details/:videoId', async (req, res) => {
   try {
     const { videoId } = req.params;
-    if (!videoId) return res.status(400).json({ error: 'Video ID is required' });
+    if (!videoId) return res.status(400).json({ error: 'videoId required' });
 
-    let instance = yt;
-    if (!instance) instance = await getYT();
-
-    // Helper: get streaming URL for a given type
-    async function getStreamUrl(type) {
-      try {
-        const fmt = await instance.getStreamingData(videoId, {
-          type,
-          quality: 'best',
-          client: 'ANDROID'
-        });
-        return fmt;
-      } catch {
-        try {
-          const fmt = await instance.getStreamingData(videoId, {
-            type,
-            quality: 'best',
-            client: 'WEB'
-          });
-          return fmt;
-        } catch {
-          return null;
-        }
-      }
+    const instance = await getYT();
+    let info;
+    try {
+      info = await instance.getBasicInfo(videoId, { client: 'ANDROID' });
+    } catch {
+      info = await instance.getBasicInfo(videoId, { client: 'WEB' });
     }
 
-    // Fetch info + audio + video in parallel
-    const [info, audioFmt, videoFmt] = await Promise.all([
-      instance.getBasicInfo(videoId, { client: 'ANDROID' }).catch(() =>
-        instance.getBasicInfo(videoId, { client: 'WEB' })
-      ),
-      getStreamUrl('audio'),
-      getStreamUrl('video')
-    ]);
-
     const bi = info?.basic_info || {};
-
-    // Best thumbnail
     const thumbs = bi.thumbnail || [];
-    const thumbnail =
-      thumbs.find(t => t.width >= 480)?.url ||
-      thumbs[0]?.url ||
-      `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    const thumbnail = thumbs.find(t => t.width >= 480)?.url || thumbs[0]?.url ||
+                      `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+    const { audio: af, video: vf } = await getStreamUrls(videoId);
 
     res.json({
       id: videoId,
@@ -306,110 +218,38 @@ app.get('/details/:videoId', async (req, res) => {
       duration_text: bi.duration_text || '',
       view_count: bi.view_count || 0,
       thumbnail,
-      audio: audioFmt ? {
-        url: audioFmt.url,
-        mime_type: audioFmt.mime_type,
-        bitrate: audioFmt.bitrate,
-        content_length: audioFmt.content_length,
-        audio_sample_rate: audioFmt.audio_sample_rate,
-        audio_channels: audioFmt.audio_channels
-      } : null,
-      video: videoFmt ? {
-        url: videoFmt.url,
-        mime_type: videoFmt.mime_type,
-        bitrate: videoFmt.bitrate,
-        content_length: videoFmt.content_length,
-        width: videoFmt.width,
-        height: videoFmt.height,
-        fps: videoFmt.fps
-      } : null
+      audio: af ? { url: af.url, mime_type: af.mime_type, bitrate: af.bitrate, content_length: af.content_length, audio_sample_rate: af.audio_sample_rate } : null,
+      video: vf ? { url: vf.url, mime_type: vf.mime_type, bitrate: vf.bitrate, content_length: vf.content_length, width: vf.width, height: vf.height, fps: vf.fps } : null
     });
 
   } catch (err) {
     console.error('[DETAILS ERROR]', err.message);
-    if (err.message?.includes('404')) {
-      ytInitialized = false;
-      yt = null;
-    }
+    if (err.message?.includes('404')) yt = null;
     res.status(500).json({ error: err.message });
   }
 });
 
-// ============ VIDEO INFO ENDPOINT ============
+// ============ INFO — metadata only ============
 app.get('/info/:videoId', async (req, res) => {
   try {
     const { videoId } = req.params;
-    
-    let instance = yt;
-    if (!instance) instance = await getYT();
-    
+    const instance = await getYT();
     const info = await instance.getBasicInfo(videoId, { client: 'ANDROID' });
-    
-    const formats = info.streaming_data ? 
-      info.streaming_data.adaptive_formats.map(f => ({
-        itag: f.itag,
-        mime_type: f.mime_type,
-        quality: f.quality || f.quality_label,
-        has_audio: f.has_audio,
-        has_video: f.has_video,
-        bitrate: f.bitrate,
-        content_length: f.content_length,
-        width: f.width,
-        height: f.height,
-        fps: f.fps,
-        audio_sample_rate: f.audio_sample_rate,
-        audio_channels: f.audio_channels,
-        container: f.container,
-        codec: f.codec,
-        approx_duration_ms: f.approx_duration_ms,
-        // URL decipher ke baad resolve karo
-      })) : [];
-    
     res.json({
       id: videoId,
       title: info.basic_info?.title,
       duration: info.basic_info?.duration,
       duration_text: info.basic_info?.duration_text,
       thumbnail: info.basic_info?.thumbnail?.[0]?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-      thumbnails: info.basic_info?.thumbnail,
       author: info.basic_info?.author,
-      channel_id: info.basic_info?.channel_id,
-      is_live: info.basic_info?.is_live,
       view_count: info.basic_info?.view_count,
-      short_description: info.basic_info?.short_description,
-      likes: info.basic_info?.like_count,
-      streaming_data_available: !!info.streaming_data,
-      formats_count: formats.length,
-      formats: formats
+      is_live: info.basic_info?.is_live
     });
-    
   } catch (err) {
     console.error('[INFO ERROR]', err.message);
-    if (err.message?.includes('404')) {
-      ytInitialized = false;
-      yt = null;
-    }
+    if (err.message?.includes('404')) yt = null;
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/', (req, res) => {
-  res.json({
-    name: 'Music Video API',
-    version: '2.0-fixed',
-    endpoints: {
-      search: '/search?q=query',
-      stream: '/stream/:videoId?type=audio|video|video+audio&quality=best',
-      details: '/details/:videoId  (audio + video URL + info in ONE call)',
-      info: '/info/:videoId'
-    }
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Search: http://localhost:${PORT}/search?q=linkin+park+numb`);
-  console.log(`Stream (audio): http://localhost:${PORT}/stream/kXYiU_JCYtU?type=audio&quality=best`);
-  console.log(`Stream (video+audio): http://localhost:${PORT}/stream/kXYiU_JCYtU?type=video+audio&quality=best`);
-  console.log(`Info: http://localhost:${PORT}/info/kXYiU_JCYtU`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
