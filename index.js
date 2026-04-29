@@ -56,23 +56,30 @@ async function getUrls(videoId) {
     `https://www.youtube.com/watch?v=${videoId}`,
     '--dump-json',
     '--skip-download',
-    '-f', 'bestaudio/best'
+    '-f', 'bestaudio+bestvideo/best'
   );
 
   const lines = raw.split('\n').filter(Boolean);
   const info = JSON.parse(lines[0]);
   const formats = info.formats || [];
 
+  // Best audio-only
   const audioFmts = formats
     .filter(f => f.acodec !== 'none' && f.vcodec === 'none' && f.url)
     .sort((a, b) => (b.abr || b.tbr || 0) - (a.abr || a.tbr || 0));
 
+  // Best video-only
   const videoFmts = formats
     .filter(f => f.vcodec !== 'none' && f.acodec === 'none' && f.url)
     .sort((a, b) => (b.height || 0) - (a.height || 0));
 
+  // Fallback: combined format
+  const combinedFmts = formats
+    .filter(f => f.acodec !== 'none' && f.vcodec !== 'none' && f.url)
+    .sort((a, b) => (b.height || 0) - (a.height || 0));
+
   const af = audioFmts[0] || null;
-  const vf = videoFmts[0] || null;
+  const vf = videoFmts[0] || combinedFmts[0] || null;
 
   const dur = info.duration || 0;
   const mins = Math.floor(dur / 60);
