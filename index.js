@@ -6,34 +6,38 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 const baseArgs = [
   '--no-warnings',
   '--cookies', '/etc/secrets/.cookies.txt',
   '--extractor-args', 'youtube:player_client=web,default',
 ];
+
 app.use(cors());
 app.use(express.json());
 
 // ── yt-dlp helper ─────────────────────────────────────────────────────────────
 async function ytdlp(...args) {
-  const { stdout } = await execFileAsync('yt-dlp', args, { maxBuffer: 10 * 1024 * 1024 });
+  // baseArgs PEHLE, phir custom args
+  const { stdout } = await execFileAsync('yt-dlp', [...baseArgs, ...args], {
+    maxBuffer: 10 * 1024 * 1024
+  });
   return stdout.trim();
 }
 
-// Search YouTube → returns array of {id, title, duration, thumbnail, author}
+// Search YouTube
 async function ytSearch(query, limit = 5) {
   const raw = await ytdlp(
     `ytsearch${limit}:${query}`,
     '--dump-json',
     '--flat-playlist',
-    '--no-warnings',
     '--skip-download'
   );
   return raw.split('\n').filter(Boolean).map(line => {
     const v = JSON.parse(line);
     const dur = v.duration || 0;
     const mins = Math.floor(dur / 60);
-    const secs = String(dur % 60).padStart(2, '0');
+    const secs = String(Math.floor(dur % 60)).padStart(2, '0');
     return {
       id: v.id,
       title: v.title || '',
@@ -45,22 +49,19 @@ async function ytSearch(query, limit = 5) {
   });
 }
 
-// Get audio + video URLs for a videoId
+// Get audio + video URLs
 async function getUrls(videoId) {
   const raw = await ytdlp(
     `https://www.youtube.com/watch?v=${videoId}`,
     '--dump-json',
-    '--no-warnings',
     '--skip-download',
     '-f', 'bestaudio,bestvideo'
   );
 
-  // yt-dlp may return 1 or 2 JSON lines (one per format requested)
   const lines = raw.split('\n').filter(Boolean);
-  const info = JSON.parse(lines[0]); // full info is always in first line
-
-  // Pick best audio-only format
+  const info = JSON.parse(lines[0]);
   const formats = info.formats || [];
+
   const audioFmts = formats
     .filter(f => f.acodec !== 'none' && f.vcodec === 'none' && f.url)
     .sort((a, b) => (b.abr || b.tbr || 0) - (a.abr || a.tbr || 0));
@@ -74,7 +75,7 @@ async function getUrls(videoId) {
 
   const dur = info.duration || 0;
   const mins = Math.floor(dur / 60);
-  const secs = String(dur % 60).padStart(2, '0');
+  const secs = String(Math.floor(dur % 60)).padStart(2, '0');
 
   return {
     id: videoId,
@@ -92,49 +93,34 @@ async function getUrls(videoId) {
   };
 }
 
-// ── ROOT ──────────────────────────────────────────────────────────────────────
+// ROOT
 app.get('/', (req, res) => {
-  res.json({
-    name: 'MuAPI', version: '6.1',
-    endpoints: {
-      search:  '/search?q=song+name&limit=5',
-      stream:  '/stream/:videoId',
-      details: '/details/:videoId',
-    }
-  });
+  res.json({ name: 'MuAPI', version: '6.2', status: 'ok' });
 });
 
-// ── SEARCH ────────────────────────────────────────────────────────────────────
-// ?urls=true  → also fetch audio/video URLs (slower)
-// ?urls=false → only metadata, use /stream/:id separately (faster) [DEFAULT]
+// SEARCH
 app.get('/search', async (req, res) => {
   try {
     const q = req.query.q;
     if (!q) return res.status(400).json({ error: 'q required' });
-
     const limit = Math.min(parseInt(req.query.limit) || 5, 10);
     const fetchUrls = req.query.urls === 'true';
-
     const results = await ytSearch(q, limit);
-
     if (fetchUrls) {
       const withUrls = await Promise.all(results.map(r => getUrls(r.id)));
       return res.json({ query: q, count: withUrls.length, results: withUrls });
     }
-
     res.json({ query: q, count: results.length, results });
-
   } catch (err) {
     console.error('[SEARCH]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── STREAM (audio URL only) ───────────────────────────────────────────────────
+// STREAM
 app.get('/stream/:videoId', async (req, res) => {
   try {
-    const { videoId } = req.params;
-    const data = await getUrls(videoId);
+    const data = await getUrls(req.params.videoId);
     if (!data.audio_url) return res.status(404).json({ error: 'Audio URL not found' });
     res.json(data);
   } catch (err) {
@@ -143,7 +129,7 @@ app.get('/stream/:videoId', async (req, res) => {
   }
 });
 
-// ── DETAILS (audio + video URLs) ──────────────────────────────────────────────
+// DETAILS
 app.get('/details/:videoId', async (req, res) => {
   try {
     const data = await getUrls(req.params.videoId);
@@ -154,4 +140,4 @@ app.get('/details/:videoId', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`MuAPI running on port ${PORT}`));
+app.listen(PORT, () => console.log(`MuAPI v6.2 running on port ${PORT}`));
