@@ -1,11 +1,10 @@
 import express from "express";
-import yts from "yt-search";
 import { spawn } from "child_process";
+import yts from "yt-search";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// ---------- yt-dlp helper ----------
 function getYtUrl(format, id) {
   return new Promise((resolve) => {
     const ytdlp = spawn("yt-dlp", [
@@ -29,7 +28,6 @@ function getYtUrl(format, id) {
   });
 }
 
-// ---------- SEARCH ----------
 app.get("/search", async (req, res) => {
   try {
     const q = req.query.q;
@@ -46,7 +44,7 @@ app.get("/search", async (req, res) => {
       let audio = null;
       let video = null;
 
-      // sirf first video ka stream nikalo
+      // sirf first video ke liye stream nikalo (fast response)
       if (i === 0) {
         audio = await getYtUrl("bestaudio", v.videoId);
         video = await getYtUrl("best", v.videoId);
@@ -71,25 +69,6 @@ app.get("/search", async (req, res) => {
   } catch (e) {
     res.json({ error: e.message });
   }
-});
-
-// ---------- DIRECT STREAM ----------
-app.get("/stream/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const type = req.query.type || "audio";
-
-    const format = type === "video" ? "best" : "bestaudio";
-    const url = await getYtUrl(format, id);
-
-    res.json({ id, type, url });
-  } catch (e) {
-    res.json({ error: e.message });
-  }
-});
-
-app.get("/", (req, res) => {
-  res.send("YT Music API Running");
 });
 
 app.listen(PORT, () =>
