@@ -1,12 +1,21 @@
 import express from "express";
-import { Innertube } from 'youtubei.js';
+import { execSync } from "child_process";
 import yts from "yt-search";
+import fs from "fs";
 
 const app = express();
 const PORT = process.env.PORT || 7000;
 
-// YouTube instance initialize करें
-const youtube = await Innertube.create();
+// 🔥 SECURITY: Environment variable se cookies.txt create karna
+// Render dashboard me 'COOKIES_CONTENT' नाम का variable बनायें और अपनी कुकीज़ वहां पेस्ट करें
+if (process.env.COOKIES_CONTENT) {
+  try {
+    fs.writeFileSync("./cookies.txt", process.env.COOKIES_CONTENT);
+    console.log("✅ cookies.txt has been generated from Env Var.");
+  } catch (err) {
+    console.error("❌ Failed to create cookies file:", err);
+  }
+}
 
 app.get("/search", async (req, res) => {
   try {
@@ -23,17 +32,21 @@ app.get("/search", async (req, res) => {
       let audio = null;
       let video = null;
 
-      // सिर्फ पहली वीडियो के लिए स्ट्रीमिंग लिंक्स निकालें
+      // सिर्फ पहली वीडियो का लिंक निकालें
       if (i === 0) {
         try {
-          const info = await youtube.getInfo(v.videoId);
-          const formatAudio = info.chooseFormat({ type: 'audio', quality: 'best' });
-          const formatVideo = info.chooseFormat({ type: 'video+audio', quality: 'best' });
-          
-          audio = formatAudio ? formatAudio.url : null;
-          video = formatVideo ? formatVideo.url : null;
+          // Check if cookies file exists to use it
+          const cookieFlag = fs.existsSync("./cookies.txt") ? "--cookies ./cookies.txt" : "";
+
+          audio = execSync(
+            `yt-dlp ${cookieFlag} -f bestaudio -g "https://youtube.com{v.videoId}"`
+          ).toString().trim();
+
+          video = execSync(
+            `yt-dlp ${cookieFlag} -f best -g "https://youtube.com{v.videoId}"`
+          ).toString().trim();
         } catch (err) {
-          console.error("Link fetch error:", err);
+          console.error(`Error fetching links for ${v.videoId}:`, err.message);
         }
       }
 
@@ -59,5 +72,5 @@ app.get("/search", async (req, res) => {
 });
 
 app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
+  console.log(`🚀 Server running on port ${PORT}`)
 );
