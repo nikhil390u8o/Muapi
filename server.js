@@ -1,76 +1,49 @@
 import express from "express";
-import { spawn } from "child_process";
 import yts from "yt-search";
+import ytdlp from "yt-dlp-exec";
 
 const app = express();
-const PORT = process.env.PORT || 8000;
-
-function getYtUrl(format, id) {
-  return new Promise((resolve) => {
-    const ytdlp = spawn("yt-dlp", [
-      "-f",
-      format,
-      "-g",
-      `https://www.youtube.com/watch?v=${id}`,
-    ]);
-
-    let data = "";
-
-    ytdlp.stdout.on("data", (chunk) => {
-      data += chunk.toString();
-    });
-
-    ytdlp.on("close", () => {
-      resolve(data.trim() || null);
-    });
-
-    ytdlp.on("error", () => resolve(null));
-  });
-}
 
 app.get("/search", async (req, res) => {
+  const q = req.query.q;
+  if (!q) return res.json({ error: "No query" });
+
+  const r = await yts(q);
+  const v = r.videos[0];
+
+  res.json({
+    title: v.title,
+    videoId: v.videoId,
+    url: v.url,
+    thumbnail: v.thumbnail,
+  });
+});
+
+app.get("/stream", async (req, res) => {
+  const q = req.query.query;
+  if (!q) return res.json({ error: "No query" });
+
   try {
-    const q = req.query.q;
-    if (!q) return res.json({ error: "No query" });
+    const r = await yts(q);
+    const url = r.videos[0].url;
 
-    const search = await yts(q);
-    const videos = search.videos.slice(0, 5);
+    const out = await ytdlp(url, {
+      dumpSingleJson: true,
+      noWarnings: true,
+      preferFreeFormats: true,
+      addHeader: ["referer:youtube.com", "user-agent:googlebot"],
+    });
 
-    const results = [];
-
-    for (let i = 0; i < videos.length; i++) {
-      const v = videos[i];
-
-      let audio = null;
-      let video = null;
-
-      // sirf first video ke liye stream nikalo (fast response)
-      if (i === 0) {
-        audio = await getYtUrl("bestaudio", v.videoId);
-        video = await getYtUrl("best", v.videoId);
-      }
-
-      results.push({
-        id: v.videoId,
-        title: v.title,
-        thumbnail: v.thumbnail,
-        duration: v.timestamp,
-        author: v.author.name,
-        audio,
-        video,
-      });
-    }
+    const audio = out.formats.find(f => f.acodec !== "none" && f.vcodec === "none");
 
     res.json({
-      query: q,
-      count: results.length,
-      results,
+      title: out.title,
+      audio_url: audio.url,
+      thumbnail: out.thumbnail,
     });
   } catch (e) {
-    res.json({ error: e.message });
+    res.json({ error: e.toString() });
   }
 });
 
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+app.listen(3000, () => console.log("API running"));
