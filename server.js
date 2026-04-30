@@ -1,49 +1,60 @@
 import express from "express";
-import yts from "yt-search";
-import ytdlp from "yt-dlp-exec";
+import { Innertube } from "youtubei.js";
 
 const app = express();
+const PORT = process.env.PORT || 8000;
+
+const yt = await Innertube.create();
 
 app.get("/search", async (req, res) => {
-  const q = req.query.q;
-  if (!q) return res.json({ error: "No query" });
-
-  const r = await yts(q);
-  const v = r.videos[0];
-
-  res.json({
-    title: v.title,
-    videoId: v.videoId,
-    url: v.url,
-    thumbnail: v.thumbnail,
-  });
-});
-
-app.get("/stream", async (req, res) => {
-  const q = req.query.query;
-  if (!q) return res.json({ error: "No query" });
-
   try {
-    const r = await yts(q);
-    const url = r.videos[0].url;
+    const q = req.query.q;
+    if (!q) return res.json({ error: "No query" });
 
-    const out = await ytdlp(url, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-      addHeader: ["referer:youtube.com", "user-agent:googlebot"],
-    });
+    // 🔎 Search videos
+    const search = await yt.search(q);
+    const videos = search.videos.slice(0, 5);
 
-    const audio = out.formats.find(f => f.acodec !== "none" && f.vcodec === "none");
+    let results = [];
+
+    for (let i = 0; i < videos.length; i++) {
+      const v = videos[i];
+
+      let audio = null;
+      let video = null;
+
+      // ✅ Sirf first video ka stream nikaalo
+      if (i === 0) {
+        const info = await yt.getInfo(v.id);
+
+        audio = info.streaming_data.adaptive_formats
+          .filter(f => f.mime_type.includes("audio"))
+          .sort((a, b) => b.bitrate - a.bitrate)[0]?.url || null;
+
+        video = info.streaming_data.formats
+          .sort((a, b) => b.bitrate - a.bitrate)[0]?.url || null;
+      }
+
+      results.push({
+        id: v.id,
+        title: v.title,
+        thumbnail: v.thumbnails[0]?.url,
+        duration: v.duration?.text,
+        author: v.author?.name,
+        audio,
+        video,
+      });
+    }
 
     res.json({
-      title: out.title,
-      audio_url: audio.url,
-      thumbnail: out.thumbnail,
+      query: q,
+      count: results.length,
+      results,
     });
+
   } catch (e) {
-    res.json({ error: e.toString() });
+    res.json({ error: e.message });
   }
 });
 
-app.listen(3000, () => console.log("API running"));
+app.listen(PORT, () => console.log("Server running"));
