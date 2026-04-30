@@ -1,30 +1,31 @@
 import express from "express";
+import yts from "yt-search";
 import { Innertube } from "youtubei.js";
 
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 
-// 🔥 IMPORTANT — Android client
+// Android client for streams
 const yt = await Innertube.create({
   client_type: "ANDROID",
+});
+
+// health route
+app.get("/", (req, res) => {
+  res.send("API running");
 });
 
 async function getStreams(id) {
   try {
     const info = await yt.getInfo(id);
-
     const formats = info.streaming_data?.adaptive_formats || [];
 
     let audio = null;
     let video = null;
 
     for (const f of formats) {
-      if (!audio && f.mime_type?.includes("audio")) {
-        audio = f.url;
-      }
-      if (!video && f.mime_type?.includes("video")) {
-        video = f.url;
-      }
+      if (!audio && f.mime_type?.includes("audio")) audio = f.url;
+      if (!video && f.mime_type?.includes("video")) video = f.url;
     }
 
     return { audio, video };
@@ -38,7 +39,8 @@ app.get("/search", async (req, res) => {
     const q = req.query.q;
     if (!q) return res.json({ error: "No query" });
 
-    const search = await yt.search(q, { type: "video" });
+    // ✅ search via yt-search
+    const search = await yts(q);
     const videos = search.videos.slice(0, 5);
 
     const results = [];
@@ -48,16 +50,16 @@ app.get("/search", async (req, res) => {
 
       let streams = { audio: null, video: null };
 
-      // first id ka stream nikaalo
+      // only first result ka stream
       if (i === 0) {
-        streams = await getStreams(v.id);
+        streams = await getStreams(v.videoId);
       }
 
       results.push({
-        id: v.id,
-        title: v.title.text,
-        thumbnail: v.thumbnails[0].url,
-        duration: v.duration.text,
+        id: v.videoId,
+        title: v.title,
+        thumbnail: v.thumbnail,
+        duration: v.timestamp,
         author: v.author.name,
         audio: streams.audio,
         video: streams.video,
