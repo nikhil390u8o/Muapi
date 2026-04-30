@@ -1,5 +1,17 @@
-"dependencies": {
-  "express": "^4.19.2",
-  "yt-search": "^2.12.1",
-  "yt-dlp-exec": "^1.0.2"
+{
+  "name": "muapi",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "yt-search": "^2.12.1",
+    "yt-dlp-exec": "^1.0.2"
+  }
 }
