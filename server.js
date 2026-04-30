@@ -4,29 +4,31 @@ import { Innertube } from "youtubei.js";
 const app = express();
 const PORT = 8000;
 
-const yt = await Innertube.create();
+// 🔥 IMPORTANT — Android client
+const yt = await Innertube.create({
+  client_type: "ANDROID",
+});
 
 async function getStreams(id) {
   try {
     const info = await yt.getInfo(id);
 
-    const audioFormat = info.chooseFormat({
-      type: "audio",
-      quality: "best",
-      format: "any",
-    });
+    const formats = info.streaming_data?.adaptive_formats || [];
 
-    const videoFormat = info.chooseFormat({
-      type: "video",
-      quality: "best",
-      format: "any",
-    });
+    let audio = null;
+    let video = null;
 
-    return {
-      audio: audioFormat?.url || null,
-      video: videoFormat?.url || null,
-    };
-  } catch (e) {
+    for (const f of formats) {
+      if (!audio && f.mime_type?.includes("audio")) {
+        audio = f.url;
+      }
+      if (!video && f.mime_type?.includes("video")) {
+        video = f.url;
+      }
+    }
+
+    return { audio, video };
+  } catch {
     return { audio: null, video: null };
   }
 }
@@ -39,14 +41,14 @@ app.get("/search", async (req, res) => {
     const search = await yt.search(q, { type: "video" });
     const videos = search.videos.slice(0, 5);
 
-    let results = [];
+    const results = [];
 
     for (let i = 0; i < videos.length; i++) {
       const v = videos[i];
 
       let streams = { audio: null, video: null };
 
-      // sirf first video ka stream nikaalna fast response ke liye
+      // first id ka stream nikaalo
       if (i === 0) {
         streams = await getStreams(v.id);
       }
@@ -62,16 +64,10 @@ app.get("/search", async (req, res) => {
       });
     }
 
-    res.json({
-      query: q,
-      count: results.length,
-      results,
-    });
+    res.json({ query: q, count: results.length, results });
   } catch (e) {
     res.json({ error: e.message });
   }
 });
 
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log("Server running"));
