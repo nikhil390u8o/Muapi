@@ -1,9 +1,12 @@
 import express from "express";
-import { execSync } from "child_process";
+import { Innertube } from 'youtubei.js';
 import yts from "yt-search";
 
 const app = express();
-const PORT = 7000;
+const PORT = process.env.PORT || 7000;
+
+// YouTube instance initialize करें
+const youtube = await Innertube.create();
 
 app.get("/search", async (req, res) => {
   try {
@@ -17,21 +20,21 @@ app.get("/search", async (req, res) => {
 
     for (let i = 0; i < videos.length; i++) {
       const v = videos[i];
-
       let audio = null;
       let video = null;
 
-      // 🔥 sirf first video ka stream nikalo
+      // सिर्फ पहली वीडियो के लिए स्ट्रीमिंग लिंक्स निकालें
       if (i === 0) {
         try {
-          audio = execSync(
-            `yt-dlp -f bestaudio -g https://www.youtube.com/watch?v=${v.videoId}`
-          ).toString().trim();
-
-          video = execSync(
-            `yt-dlp -f best -g https://www.youtube.com/watch?v=${v.videoId}`
-          ).toString().trim();
-        } catch {}
+          const info = await youtube.getInfo(v.videoId);
+          const formatAudio = info.chooseFormat({ type: 'audio', quality: 'best' });
+          const formatVideo = info.chooseFormat({ type: 'video+audio', quality: 'best' });
+          
+          audio = formatAudio ? formatAudio.url : null;
+          video = formatVideo ? formatVideo.url : null;
+        } catch (err) {
+          console.error("Link fetch error:", err);
+        }
       }
 
       results.push({
@@ -51,7 +54,7 @@ app.get("/search", async (req, res) => {
       results,
     });
   } catch (e) {
-    res.json({ error: e.message });
+    res.status(500).json({ error: e.message });
   }
 });
 
