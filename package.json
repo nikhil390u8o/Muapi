@@ -1,13 +1,13 @@
 {
-  "name": "muapi",
-  "version": "6.0.0",
+  "name": "ytapi",
+  "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "yt-search": "^2.12.1"
   }
 }
