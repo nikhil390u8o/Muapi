@@ -1,99 +1,81 @@
+import os
+import glob
+import yt_dlp
 from flask import Flask, request, jsonify
-import requests
-import urllib.parse
-import re
 
 app = Flask(__name__)
 
-def get_youtube_url(query):
-    instances = [
-        "https://inv.tux.pizza",
-        "https://invidious.nerdvpn.de", 
-        "https://invidious.privacydev.net",
-        "https://yt.cdaut.de",
-    ]
-    for instance in instances:
-        try:
-            resp = requests.get(
-                f"{instance}/api/v1/search",
-                params={"q": query, "type": "video"},
-                timeout=8
-            )
-            if resp.status_code == 200:
-                results = resp.json()
-                if results and isinstance(results, list):
-                    video_id = results[0].get('videoId')
-                    if video_id:
-                        return f"https://www.youtube.com/watch?v={video_id}", video_id
-        except:
-            continue
+DOWNLOAD_DIR = "downloads"
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-    # Fallback: YouTube scrape
-    try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        encoded = urllib.parse.quote(query)
-        resp = requests.get(
-            f"https://www.youtube.com/results?search_query={encoded}",
-            headers=headers, timeout=10
-        )
-        ids = re.findall(r'"videoId":"([a-zA-Z0-9_-]{11})"', resp.text)
-        if ids:
-            return f"https://www.youtube.com/watch?v={ids[0]}", ids[0]
-    except:
-        pass
 
-    return None, None
-
-@app.route('/query')
-def query():
-    q = request.args.get('q', '')
-    if not q:
-        return jsonify({"error": "q parameter missing"}), 400
-
-    yt_url, video_id = get_youtube_url(q)
-    if not yt_url:
-        return jsonify({"error": "No video found"}), 404
-
-    # Thumbnail URLs (multiple quality)
-    thumbnails = {
-        "default": f"https://img.youtube.com/vi/{video_id}/default.jpg",
-        "medium":  f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
-        "high":    f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg",
-        "max":     f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
+def ydl_opts():
+    return {
+        "format": "(bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a])/mp4",
+        "outtmpl": f"{DOWNLOAD_DIR}/%(id)s.%(ext)s",
+        "merge_output_format": "mp4",
+        "quiet": True,
+        "nocheckcertificate": True,
+        "concurrent_fragment_downloads": 1,
+        "ratelimit": 3000000,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android"],  # ← IMPORTANT
+            }
+        },
     }
 
-    # MP4 (video)
-    mp4_data = {}
+
+def cached(vid):
+    f = glob.glob(f"{DOWNLOAD_DIR}/{vid}.mp4")
+    return f[0] if f else None
+
+
+def search_video(query: str):
+    with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+        info = ydl.extract_info(f"ytsearch1:{query}", download=False)
+        return info["entries"][0]["webpage_url"]
+
+
+def download_mp4(link: str):
+    with yt_dlp.YoutubeDL(ydl_opts()) as ydl:
+        info = ydl.extract_info(link, download=False)
+        vid = info["id"]
+
+        cache = cached(vid)
+        if cache:
+            return cache, info
+
+        ydl.download([link])
+        return f"{DOWNLOAD_DIR}/{vid}.mp4", info
+
+
+@app.route("/play")
+def play_song():
     try:
-        resp = requests.get(
-            "https://youtube.anshppt19.workers.dev/anshapi",
-            params={"url": yt_url, "format": "mp4hd"},
-            timeout=30
-        )
-        mp4_data = resp.json().get("data", {})
-    except:
-        pass
+        query = request.args.get("query")
+        if not query:
+            return jsonify({"error": "No query"}), 400
 
-    # MP3 (audio)
-    mp3_data = {}
-    try:
-        resp = requests.get(
-            "https://youtube.anshppt19.workers.dev/anshapi",
-            params={"url": yt_url, "format": "mp3"},
-            timeout=30
-        )
-        mp3_data = resp.json().get("data", {})
-    except:
-        pass
+        url = search_video(query)
+        path, info = download_mp4(url)
 
-    return jsonify({
-        "success": True,
-        "yt_url": yt_url,
-        "video_id": video_id,
-        "thumbnails": thumbnails,
-        "video": mp4_data,
-        "audio": mp3_data
-    })
+        return jsonify({
+            "title": info.get("title"),
+            "duration": info.get("duration"),
+            "thumbnail": info.get("thumbnail"),
+            "file": path,
+            "video_id": info.get("id"),
+        })
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }), 500
+
+
+if __name__ == "__main__":
+    PORT = int(os.environ.get("PORT", 5000))  # ← Render fix
+    app.run(host="0.0.0.0", port=PORT)
