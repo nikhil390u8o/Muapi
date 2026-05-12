@@ -2,7 +2,6 @@ import os
 import glob
 import yt_dlp
 from flask import Flask, request, jsonify
-from youtubesearchpython.__future__ import VideosSearch
 
 app = Flask(__name__)
 
@@ -31,13 +30,23 @@ def cached(vid):
 
 
 def search_video(query: str):
-    vs = VideosSearch(query, limit=1)
-    res = vs.result()
+    opts = {
+        "quiet": True,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android"],
+                "skip": ["webpage"],
+            }
+        },
+    }
 
-    if not res["result"]:
-        raise Exception("No results found")
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        info = ydl.extract_info(f"ytsearch1:{query}", download=False)
 
-    return res["result"][0]["link"]
+        if "entries" not in info or not info["entries"]:
+            raise Exception("No results from ytsearch")
+
+        return info["entries"][0]["webpage_url"]
 
 
 def download_mp4(link: str):
