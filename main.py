@@ -2,6 +2,7 @@ import os
 import glob
 import yt_dlp
 from flask import Flask, request, jsonify
+from youtubesearchpython.__future__ import VideosSearch
 
 app = Flask(__name__)
 
@@ -11,16 +12,14 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 def ydl_opts():
     return {
-        "format": "(bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a])/mp4",
+        "format": "best[ext=mp4][height<=720]",
         "outtmpl": f"{DOWNLOAD_DIR}/%(id)s.%(ext)s",
-        "merge_output_format": "mp4",
         "quiet": True,
         "nocheckcertificate": True,
-        "concurrent_fragment_downloads": 1,
-        "ratelimit": 3000000,
         "extractor_args": {
             "youtube": {
-                "player_client": ["android"],  # ← IMPORTANT
+                "player_client": ["android"],
+                "skip": ["webpage"],
             }
         },
     }
@@ -32,9 +31,13 @@ def cached(vid):
 
 
 def search_video(query: str):
-    with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
-        info = ydl.extract_info(f"ytsearch1:{query}", download=False)
-        return info["entries"][0]["webpage_url"]
+    vs = VideosSearch(query, limit=1)
+    res = vs.result()
+
+    if not res["result"]:
+        raise Exception("No results found")
+
+    return res["result"][0]["link"]
 
 
 def download_mp4(link: str):
@@ -77,5 +80,4 @@ def play_song():
 
 
 if __name__ == "__main__":
-    PORT = int(os.environ.get("PORT", 5000))  # ← Render fix
-    app.run(host="0.0.0.0", port=PORT)
+    app.run(host="0.0.0.0", port=5000)
