@@ -51,8 +51,1597 @@ PLANS = {
     "elite": {"name": "Elite Hacker",  "price_monthly": 399, "price_yearly": 2999, "price_3month": 999},
 }
 
-HTML_CONTENT = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8"/>\n<meta name="viewport" content="width=device-width,initial-scale=1.0"/>\n<title>HACKER AI — Elite Intelligence</title>\n<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet"/>\n<style>\n:root{\n  --green:#00ff88;--cyan:#00e5ff;--red:#ff3366;--orange:#ff6b35;\n  --bg:#000;--bg1:#030a03;--bg2:#050d0a;--card:#0a1a0f;\n  --border:#1a3a1f;--text:#c0ffc0;--dim:#446644;\n  --font-mono:\'JetBrains Mono\',monospace;--font-hud:\'Share Tech Mono\',monospace;\n  --font-title:\'Orbitron\',sans-serif;\n}\n*{margin:0;padding:0;box-sizing:border-box;}\nhtml,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);overflow-x:hidden;}\n\n/* ── STARS ── */\n#stars-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}\n\n/* ── SCANLINES ── */\nbody::before{content:\'\';position:fixed;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.015) 2px,rgba(0,255,136,0.015) 4px);z-index:1;pointer-events:none;}\n\n/* ── LAYOUT ── */\n#app{position:relative;z-index:2;min-height:100vh;}\n\n/* ══════════════════════════════════════════════\n   AUTH SCREEN\n══════════════════════════════════════════════ */\n#auth-screen{\n  display:flex;flex-direction:column;align-items:center;justify-content:center;\n  min-height:100vh;padding:20px;\n}\n.auth-logo{\n  font-family:var(--font-title);font-size:clamp(2rem,6vw,3.5rem);\n  font-weight:900;letter-spacing:6px;color:var(--green);\n  text-shadow:0 0 30px var(--green),0 0 60px rgba(0,255,136,0.3);\n  margin-bottom:8px;animation:flicker 4s infinite;\n}\n.auth-sub{font-family:var(--font-hud);color:var(--cyan);font-size:0.75rem;letter-spacing:4px;margin-bottom:40px;opacity:0.7;}\n@keyframes flicker{0%,95%,100%{opacity:1}96%,99%{opacity:0.7}97%,98%{opacity:0.3}}\n\n.auth-card{\n  background:linear-gradient(135deg,rgba(10,26,15,0.95),rgba(3,10,3,0.98));\n  border:1px solid var(--border);border-top:1px solid var(--green);\n  width:100%;max-width:420px;padding:40px;position:relative;\n  box-shadow:0 0 40px rgba(0,255,136,0.08),inset 0 0 40px rgba(0,0,0,0.5);\n}\n.auth-card::before{\n  content:\'\';position:absolute;top:0;left:0;width:100%;height:2px;\n  background:linear-gradient(90deg,transparent,var(--green),var(--cyan),transparent);\n  animation:scan-h 3s infinite;\n}\n@keyframes scan-h{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}\n\n.tab-row{display:flex;gap:0;margin-bottom:32px;border:1px solid var(--border);overflow:hidden;}\n.tab-btn{\n  flex:1;padding:12px;background:none;border:none;cursor:pointer;\n  font-family:var(--font-hud);font-size:0.8rem;letter-spacing:2px;\n  color:var(--dim);transition:.2s;\n}\n.tab-btn.active{background:rgba(0,255,136,0.1);color:var(--green);border-bottom:2px solid var(--green);}\n\n.input-group{margin-bottom:18px;}\n.input-label{font-family:var(--font-hud);font-size:0.7rem;letter-spacing:2px;color:var(--cyan);margin-bottom:6px;display:block;}\n.input-field{\n  width:100%;background:rgba(0,0,0,0.6);border:1px solid var(--border);\n  color:var(--green);font-family:var(--font-mono);font-size:0.9rem;\n  padding:12px 16px;outline:none;transition:.2s;\n}\n.input-field:focus{border-color:var(--green);box-shadow:0 0 12px rgba(0,255,136,0.15);}\n.input-field::placeholder{color:var(--dim);}\n\n.btn-primary{\n  width:100%;padding:14px;background:transparent;\n  border:1px solid var(--green);color:var(--green);\n  font-family:var(--font-title);font-size:0.85rem;letter-spacing:3px;\n  cursor:pointer;transition:.3s;position:relative;overflow:hidden;margin-top:8px;\n}\n.btn-primary::before{\n  content:\'\';position:absolute;top:0;left:-100%;width:100%;height:100%;\n  background:linear-gradient(90deg,transparent,rgba(0,255,136,0.15),transparent);\n  transition:.4s;\n}\n.btn-primary:hover::before{left:100%;}\n.btn-primary:hover{background:rgba(0,255,136,0.1);box-shadow:0 0 20px rgba(0,255,136,0.2);}\n.btn-primary:active{transform:scale(0.98);}\n\n.auth-error{color:var(--red);font-size:0.8rem;font-family:var(--font-hud);margin-top:10px;text-align:center;min-height:20px;}\n\n/* ══════════════════════════════════════════════\n   MAIN APP\n══════════════════════════════════════════════ */\n#main-app{display:none;height:100vh;flex-direction:column;}\n\n/* NAV */\n.nav{\n  display:flex;align-items:center;justify-content:space-between;\n  padding:0 20px;height:54px;border-bottom:1px solid var(--border);\n  background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);flex-shrink:0;\n}\n.nav-logo{font-family:var(--font-title);font-size:1.1rem;font-weight:700;color:var(--green);letter-spacing:3px;text-shadow:0 0 10px var(--green);}\n.nav-right{display:flex;align-items:center;gap:12px;}\n.nav-btn{\n  background:none;border:1px solid var(--border);color:var(--text);\n  font-family:var(--font-hud);font-size:0.7rem;letter-spacing:1px;\n  padding:6px 14px;cursor:pointer;transition:.2s;\n}\n.nav-btn:hover{border-color:var(--green);color:var(--green);}\n.nav-btn.danger:hover{border-color:var(--red);color:var(--red);}\n.plan-badge{\n  font-family:var(--font-hud);font-size:0.65rem;letter-spacing:2px;\n  padding:4px 10px;border:1px solid;\n}\n.plan-badge.free{color:var(--dim);border-color:var(--dim);}\n.plan-badge.basic{color:var(--green);border-color:var(--green);}\n.plan-badge.pro{color:var(--cyan);border-color:var(--cyan);}\n.plan-badge.elite{color:var(--orange);border-color:var(--orange);}\n\n/* PAGE TABS */\n.page-tabs{\n  display:flex;gap:0;border-bottom:1px solid var(--border);\n  background:rgba(0,0,0,0.7);flex-shrink:0;\n}\n.page-tab{\n  padding:10px 24px;background:none;border:none;cursor:pointer;\n  font-family:var(--font-hud);font-size:0.75rem;letter-spacing:2px;\n  color:var(--dim);border-bottom:2px solid transparent;transition:.2s;\n}\n.page-tab.active{color:var(--green);border-bottom-color:var(--green);}\n.page-tab:hover{color:var(--text);}\n\n/* ══ CHAT PAGE ══ */\n#page-chat{flex:1;display:flex;overflow:hidden;}\n\n.sidebar{\n  width:240px;flex-shrink:0;border-right:1px solid var(--border);\n  background:rgba(3,10,3,0.95);display:flex;flex-direction:column;\n  overflow-y:auto;\n}\n.sidebar-section{padding:12px 16px;border-bottom:1px solid var(--border);}\n.sidebar-label{font-family:var(--font-hud);font-size:0.65rem;letter-spacing:3px;color:var(--dim);margin-bottom:10px;}\n\n.model-item{\n  display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;\n  border:1px solid transparent;margin-bottom:4px;transition:.2s;border-radius:2px;\n}\n.model-item:hover{border-color:var(--border);background:rgba(0,255,136,0.03);}\n.model-item.active{border-color:var(--green);background:rgba(0,255,136,0.07);}\n.model-item.locked{opacity:0.35;cursor:not-allowed;}\n.model-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}\n.dot-free{background:var(--green);box-shadow:0 0 6px var(--green);}\n.dot-basic{background:#00ff88;box-shadow:0 0 6px #00ff88;}\n.dot-pro{background:var(--cyan);box-shadow:0 0 6px var(--cyan);}\n.dot-elite{background:var(--orange);box-shadow:0 0 6px var(--orange);}\n.dot-locked{background:var(--dim);}\n.model-info{min-width:0;}\n.model-name{font-size:0.72rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.model-desc{font-size:0.6rem;color:var(--dim);}\n.vision-tag{font-size:0.55rem;color:var(--cyan);letter-spacing:1px;}\n\n/* Chat area */\n.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}\n\n.chat-header{\n  padding:12px 20px;border-bottom:1px solid var(--border);\n  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;\n}\n.active-model-name{font-family:var(--font-hud);font-size:0.75rem;color:var(--cyan);letter-spacing:2px;}\n.vision-indicator{font-size:0.65rem;color:var(--cyan);background:rgba(0,229,255,0.1);border:1px solid var(--cyan);padding:2px 8px;letter-spacing:1px;}\n\n.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}\n.messages::-webkit-scrollbar{width:4px;}\n.messages::-webkit-scrollbar-track{background:transparent;}\n.messages::-webkit-scrollbar-thumb{background:var(--border);}\n\n.msg{display:flex;gap:12px;max-width:100%;}\n.msg.user{flex-direction:row-reverse;}\n.msg-avatar{\n  width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;\n  justify-content:center;font-family:var(--font-hud);font-size:0.65rem;\n  border:1px solid;\n}\n.msg.ai .msg-avatar{border-color:var(--green);color:var(--green);background:rgba(0,255,136,0.08);}\n.msg.user .msg-avatar{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.08);}\n.msg-bubble{\n  max-width:75%;padding:14px 18px;\n  font-size:0.85rem;line-height:1.7;word-break:break-word;\n}\n.msg.ai .msg-bubble{\n  background:rgba(10,26,15,0.7);border:1px solid var(--border);\n  border-left:2px solid var(--green);\n}\n.msg.user .msg-bubble{\n  background:rgba(0,10,20,0.7);border:1px solid rgba(0,229,255,0.2);\n  border-right:2px solid var(--cyan);\n}\n.msg-bubble pre{\n  background:rgba(0,0,0,0.5);border:1px solid var(--border);\n  padding:12px;margin:10px 0;overflow-x:auto;font-size:0.8rem;\n  border-left:2px solid var(--orange);\n}\n.msg-bubble code{color:var(--orange);font-family:var(--font-mono);}\n.msg-bubble pre code{color:#c0ffa0;}\n\n.typing-indicator{display:flex;gap:4px;align-items:center;padding:12px 18px;}\n.typing-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:typing 1.2s infinite;}\n.typing-dot:nth-child(2){animation-delay:.2s;}\n.typing-dot:nth-child(3){animation-delay:.4s;}\n@keyframes typing{0%,60%,100%{opacity:0.2;transform:scale(0.8)}30%{opacity:1;transform:scale(1)}}\n\n/* Input bar */\n.input-bar{\n  border-top:1px solid var(--border);padding:14px 20px;\n  background:rgba(0,0,0,0.8);flex-shrink:0;\n}\n.file-preview{\n  display:flex;align-items:center;gap:10px;padding:8px 12px;\n  background:rgba(0,255,136,0.05);border:1px solid var(--border);\n  margin-bottom:10px;font-size:0.75rem;color:var(--cyan);\n}\n.file-preview .rm{cursor:pointer;color:var(--red);margin-left:auto;font-size:1rem;}\n.input-row{display:flex;gap:10px;align-items:flex-end;}\n.msg-input{\n  flex:1;background:rgba(0,0,0,0.6);border:1px solid var(--border);\n  color:var(--text);font-family:var(--font-mono);font-size:0.85rem;\n  padding:12px 16px;resize:none;outline:none;max-height:160px;min-height:46px;\n  transition:.2s;\n}\n.msg-input:focus{border-color:var(--green);}\n.attach-btn,.send-btn{\n  background:none;border:1px solid var(--border);color:var(--dim);\n  padding:11px 14px;cursor:pointer;font-size:1.1rem;transition:.2s;flex-shrink:0;\n  height:46px;display:flex;align-items:center;\n}\n.attach-btn:hover{border-color:var(--cyan);color:var(--cyan);}\n.send-btn{border-color:var(--green);color:var(--green);}\n.send-btn:hover{background:rgba(0,255,136,0.1);box-shadow:0 0 10px rgba(0,255,136,0.2);}\n.send-btn:disabled{opacity:0.3;cursor:not-allowed;}\n\n/* ══ PLANS PAGE ══ */\n#page-plans{\n  flex:1;overflow-y:auto;padding:40px 20px;\n  display:none;\n}\n.plans-title{font-family:var(--font-title);font-size:1.8rem;color:var(--green);text-align:center;margin-bottom:6px;letter-spacing:4px;}\n.plans-sub{text-align:center;color:var(--dim);font-family:var(--font-hud);font-size:0.75rem;letter-spacing:2px;margin-bottom:30px;}\n\n.duration-toggle{display:flex;justify-content:center;gap:0;margin-bottom:36px;border:1px solid var(--border);}\n.dur-btn{\n  padding:10px 24px;background:none;border:none;cursor:pointer;\n  font-family:var(--font-hud);font-size:0.75rem;letter-spacing:2px;color:var(--dim);transition:.2s;\n}\n.dur-btn.active{background:rgba(0,255,136,0.1);color:var(--green);}\n\n.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:960px;margin:0 auto 40px;}\n\n.plan-card{\n  background:linear-gradient(160deg,rgba(10,26,15,0.9),rgba(3,10,3,0.98));\n  border:1px solid var(--border);padding:28px;position:relative;\n  transition:.3s;overflow:hidden;\n}\n.plan-card::before{\n  content:\'\';position:absolute;top:0;left:0;right:0;height:2px;\n}\n.plan-card.basic::before{background:linear-gradient(90deg,transparent,#00ff88,transparent);}\n.plan-card.pro::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent);}\n.plan-card.elite::before{background:linear-gradient(90deg,transparent,var(--orange),transparent);}\n.plan-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,255,136,0.08);}\n\n.plan-card-name{font-family:var(--font-title);font-size:1rem;letter-spacing:3px;margin-bottom:6px;}\n.plan-card.basic .plan-card-name{color:#00ff88;}\n.plan-card.pro .plan-card-name{color:var(--cyan);}\n.plan-card.elite .plan-card-name{color:var(--orange);}\n\n.plan-price{font-family:var(--font-title);font-size:2.2rem;font-weight:900;margin:16px 0 4px;}\n.plan-price-sub{font-family:var(--font-hud);font-size:0.7rem;color:var(--dim);letter-spacing:1px;margin-bottom:20px;}\n.plan-features{list-style:none;margin-bottom:24px;}\n.plan-features li{font-size:0.78rem;color:var(--text);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);}\n.plan-features li::before{content:\'▶ \';font-size:0.6rem;margin-right:6px;}\n.plan-features li.locked{color:var(--dim);}\n.plan-features li.locked::before{content:\'🔒 \';}\n\n.plan-buy-btn{\n  width:100%;padding:12px;border:1px solid;background:transparent;\n  font-family:var(--font-title);font-size:0.8rem;letter-spacing:2px;cursor:pointer;transition:.3s;\n}\n.plan-card.basic .plan-buy-btn{border-color:#00ff88;color:#00ff88;}\n.plan-card.pro .plan-buy-btn{border-color:var(--cyan);color:var(--cyan);}\n.plan-card.elite .plan-buy-btn{border-color:var(--orange);color:var(--orange);}\n.plan-buy-btn:hover{background:rgba(255,255,255,0.06);}\n\n/* Payment Modal */\n.modal-overlay{\n  position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;\n  display:flex;align-items:center;justify-content:center;padding:20px;\n  backdrop-filter:blur(4px);\n}\n.modal{\n  background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--green);\n  width:100%;max-width:480px;padding:32px;position:relative;max-height:90vh;overflow-y:auto;\n}\n.modal-title{font-family:var(--font-title);font-size:1rem;color:var(--green);letter-spacing:3px;margin-bottom:24px;}\n.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--dim);font-size:1.2rem;cursor:pointer;}\n.modal-close:hover{color:var(--red);}\n.qr-container{\n  display:flex;flex-direction:column;align-items:center;padding:20px;\n  border:1px dashed var(--border);margin-bottom:20px;\n}\n.qr-img{width:180px;height:180px;border:2px solid var(--green);object-fit:contain;background:#fff;}\n.qr-label{font-family:var(--font-hud);font-size:0.7rem;color:var(--cyan);letter-spacing:2px;margin-top:10px;text-align:center;}\n.amount-display{\n  font-family:var(--font-title);font-size:1.5rem;color:var(--green);\n  text-align:center;margin:12px 0 4px;\n}\n.modal-info{font-family:var(--font-hud);font-size:0.7rem;color:var(--dim);text-align:center;margin-bottom:20px;}\n\n/* Admin panel */\n#page-admin{flex:1;overflow-y:auto;padding:30px 20px;display:none;}\n.admin-title{font-family:var(--font-title);font-size:1.2rem;color:var(--orange);letter-spacing:3px;margin-bottom:24px;}\n.payment-row{\n  display:flex;align-items:center;justify-content:space-between;\n  padding:14px 18px;border:1px solid var(--border);margin-bottom:8px;\n  background:rgba(10,26,15,0.5);flex-wrap:wrap;gap:10px;\n}\n.payment-info{font-size:0.8rem;}\n.payment-info strong{color:var(--green);}\n.approve-btn{\n  background:none;border:1px solid var(--green);color:var(--green);\n  font-family:var(--font-hud);font-size:0.7rem;letter-spacing:1px;\n  padding:6px 16px;cursor:pointer;transition:.2s;\n}\n.approve-btn:hover{background:rgba(0,255,136,0.1);}\n\n/* Toast */\n.toast{\n  position:fixed;bottom:24px;right:24px;z-index:999;\n  background:rgba(10,26,15,0.98);border:1px solid var(--green);\n  color:var(--green);font-family:var(--font-hud);font-size:0.8rem;letter-spacing:1px;\n  padding:14px 20px;transform:translateY(100px);opacity:0;transition:.3s;max-width:300px;\n}\n.toast.show{transform:translateY(0);opacity:1;}\n.toast.error{border-color:var(--red);color:var(--red);}\n\n/* Responsive */\n@media(max-width:680px){\n  .sidebar{width:200px;}\n  .model-desc{display:none;}\n  .msg-bubble{max-width:88%;}\n}\n@media(max-width:520px){\n  .sidebar{display:none;}\n  #page-chat{flex-direction:column;}\n}\n</style>\n</head>\n<body>\n\n<canvas id="stars-canvas"></canvas>\n\n<div id="app">\n\n<!-- ══════════ AUTH SCREEN ══════════ -->\n<div id="auth-screen">\n  <div class="auth-logo">HACKER AI</div>\n  <div class="auth-sub">// ELITE INTELLIGENCE SYSTEM v2.0</div>\n\n  <div class="auth-card">\n    <div class="tab-row">\n      <button class="tab-btn active" onclick="switchTab(\'login\')">LOGIN</button>\n      <button class="tab-btn" onclick="switchTab(\'register\')">REGISTER</button>\n    </div>\n\n    <div id="login-form">\n      <div class="input-group">\n        <label class="input-label">// EMAIL</label>\n        <input class="input-field" type="email" id="login-email" placeholder="user@domain.com"/>\n      </div>\n      <div class="input-group">\n        <label class="input-label">// PASSWORD</label>\n        <input class="input-field" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')doLogin()"/>\n      </div>\n      <button class="btn-primary" onclick="doLogin()">ACCESS SYSTEM</button>\n      <div class="auth-error" id="login-err"></div>\n    </div>\n\n    <div id="register-form" style="display:none">\n      <div class="input-group">\n        <label class="input-label">// EMAIL</label>\n        <input class="input-field" type="email" id="reg-email" placeholder="user@domain.com"/>\n      </div>\n      <div class="input-group">\n        <label class="input-label">// PASSWORD</label>\n        <input class="input-field" type="password" id="reg-pass" placeholder="Min 6 characters"/>\n      </div>\n      <div class="input-group">\n        <label class="input-label">// CONFIRM PASSWORD</label>\n        <input class="input-field" type="password" id="reg-pass2" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')doRegister()"/>\n      </div>\n      <button class="btn-primary" onclick="doRegister()">CREATE ACCOUNT</button>\n      <div class="auth-error" id="reg-err"></div>\n    </div>\n  </div>\n</div>\n\n<!-- ══════════ MAIN APP ══════════ -->\n<div id="main-app">\n\n  <!-- NAV -->\n  <nav class="nav">\n    <div class="nav-logo">⬡ HACKER AI</div>\n    <div class="nav-right">\n      <span class="plan-badge" id="nav-plan-badge">FREE</span>\n      <span style="font-family:var(--font-hud);font-size:0.7rem;color:var(--dim)" id="nav-email"></span>\n      <button class="nav-btn" onclick="logout()">LOGOUT</button>\n    </div>\n  </nav>\n\n  <!-- PAGE TABS -->\n  <div class="page-tabs">\n    <button class="page-tab active" onclick="showPage(\'chat\')">⚡ CHAT</button>\n    <button class="page-tab" onclick="showPage(\'plans\')">💎 PLANS</button>\n    <button class="page-tab" id="admin-tab" style="display:none" onclick="showPage(\'admin\')">🔐 ADMIN</button>\n  </div>\n\n  <!-- ── CHAT PAGE ── -->\n  <div id="page-chat" style="display:flex;">\n\n    <!-- Sidebar -->\n    <div class="sidebar">\n      <div class="sidebar-section">\n        <div class="sidebar-label">FREE MODELS</div>\n        <div id="free-model-list"></div>\n      </div>\n      <div class="sidebar-section">\n        <div class="sidebar-label">PREMIUM MODELS</div>\n        <div id="paid-model-list"></div>\n      </div>\n    </div>\n\n    <!-- Chat -->\n    <div class="chat-area">\n      <div class="chat-header">\n        <div>\n          <div class="active-model-name" id="active-model-label">LLAMA 3.1 8B</div>\n          <div style="font-size:0.65rem;color:var(--dim);font-family:var(--font-hud)">llama-3.1-8b-instant</div>\n        </div>\n        <div id="vision-badge" style="display:none" class="vision-indicator">👁 VISION</div>\n      </div>\n\n      <div class="messages" id="messages">\n        <div class="msg ai">\n          <div class="msg-avatar">AI</div>\n          <div class="msg-bubble">\n            <strong style="color:var(--green);font-family:var(--font-hud)">// HACKER AI ONLINE</strong><br><br>\n            System initialized. I\'m your elite AI assistant — specialized in cybersecurity, programming, code analysis, and technical research.<br><br>\n            Select a model from the sidebar. Upload files, images, or code for analysis. Elite models require a premium plan. 🔥\n          </div>\n        </div>\n      </div>\n\n      <div class="input-bar">\n        <div class="file-preview" id="file-preview" style="display:none">\n          <span id="file-name"></span>\n          <span class="rm" onclick="removeFile()">✕</span>\n        </div>\n        <div class="input-row">\n          <button class="attach-btn" onclick="document.getElementById(\'file-input\').click()" title="Attach file/image">📎</button>\n          <input type="file" id="file-input" style="display:none" onchange="onFileSelect()" accept="image/*,.py,.js,.php,.html,.css,.ts,.json,.txt,.md,.sh,.rb,.go,.java,.c,.cpp,.rs,.sql,.yaml,.toml,.xml,.csv,.zip,.tar">\n          <textarea class="msg-input" id="msg-input" placeholder="Enter command... (Shift+Enter for newline)" rows="1"\n            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>\n          <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>\n        </div>\n      </div>\n    </div>\n  </div>\n\n  <!-- ── PLANS PAGE ── -->\n  <div id="page-plans">\n    <div class="plans-title">UPGRADE PLAN</div>\n    <div class="plans-sub">// UNLOCK ELITE MODELS & CAPABILITIES</div>\n\n    <div class="duration-toggle">\n      <button class="dur-btn active" onclick="setDuration(\'monthly\')">MONTHLY</button>\n      <button class="dur-btn" onclick="setDuration(\'3month\')">3 MONTHS</button>\n      <button class="dur-btn" onclick="setDuration(\'yearly\')">YEARLY</button>\n    </div>\n\n    <div class="plans-grid">\n      <!-- BASIC -->\n      <div class="plan-card basic">\n        <div class="plan-card-name">BASIC HACKER</div>\n        <div class="plan-price" id="price-basic" style="color:#00ff88">₹99</div>\n        <div class="plan-price-sub" id="price-basic-sub">/month</div>\n        <ul class="plan-features">\n          <li>Llama 3.3 70B Versatile</li>\n          <li>Mixtral 8x7B MoE</li>\n          <li>Llama 3.2 11B Vision</li>\n          <li>File & Code Analysis</li>\n          <li>ZIP Archive Reading</li>\n          <li class="locked">Llama 4 Scout/Maverick</li>\n          <li class="locked">DeepSeek R1 / Qwen QwQ</li>\n        </ul>\n        <button class="plan-buy-btn" onclick="openPayment(\'basic\')">GET BASIC</button>\n      </div>\n\n      <!-- PRO -->\n      <div class="plan-card pro">\n        <div class="plan-card-name">PRO HACKER</div>\n        <div class="plan-price" id="price-pro" style="color:var(--cyan)">₹199</div>\n        <div class="plan-price-sub" id="price-pro-sub">/month</div>\n        <ul class="plan-features">\n          <li>Everything in Basic</li>\n          <li>Llama 4 Scout 17B</li>\n          <li>Llama 4 Maverick 17B</li>\n          <li>Llama 3.2 90B Vision</li>\n          <li>Advanced Multimodal</li>\n          <li>Priority Processing</li>\n          <li class="locked">DeepSeek R1 / Qwen QwQ</li>\n        </ul>\n        <button class="plan-buy-btn" onclick="openPayment(\'pro\')">GET PRO</button>\n      </div>\n\n      <!-- ELITE -->\n      <div class="plan-card elite">\n        <div class="plan-card-name">ELITE HACKER</div>\n        <div class="plan-price" id="price-elite" style="color:var(--orange)">₹399</div>\n        <div class="plan-price-sub" id="price-elite-sub">/month</div>\n        <ul class="plan-features">\n          <li>ALL Models Unlocked</li>\n          <li>DeepSeek R1 70B</li>\n          <li>Qwen QwQ 32B Reasoning</li>\n          <li>PlayAI Text-to-Speech</li>\n          <li>Max Context Windows</li>\n          <li>Full Vision + File Support</li>\n          <li>⚡ Highest Priority</li>\n        </ul>\n        <button class="plan-buy-btn" onclick="openPayment(\'elite\')">GO ELITE</button>\n      </div>\n    </div>\n  </div>\n\n  <!-- ── ADMIN PAGE ── -->\n  <div id="page-admin">\n    <div class="admin-title">⚡ OWNER PANEL</div>\n    <button class="nav-btn" onclick="loadAdminPayments()" style="margin-bottom:20px">↻ REFRESH</button>\n    <div id="admin-payments"></div>\n  </div>\n\n</div>\n</div>\n\n<!-- ══════ PAYMENT MODAL ══════ -->\n<div class="modal-overlay" id="payment-modal" style="display:none">\n  <div class="modal">\n    <button class="modal-close" onclick="closePayment()">✕</button>\n    <div class="modal-title">// COMPLETE PAYMENT</div>\n\n    <div class="qr-container">\n      <!-- Replace this src with your actual UPI QR image URL -->\n      <img class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=your-upi@okaxis&pn=HackerAI&am=AMOUNT" id="qr-img" alt="UPI QR"/>\n      <div class="qr-label">SCAN TO PAY VIA UPI</div>\n    </div>\n\n    <div class="amount-display" id="modal-amount">₹99</div>\n    <div class="modal-info" id="modal-info">Basic Hacker — Monthly Plan</div>\n\n    <div class="input-group" style="margin-bottom:10px">\n      <label class="input-label">// YOUR UPI UTR / TRANSACTION ID</label>\n      <input class="input-field" type="text" id="utr-input" placeholder="Enter UTR after payment"/>\n    </div>\n    <div class="input-group" style="margin-bottom:20px">\n      <label class="input-label">// YOUR EMAIL (for confirmation)</label>\n      <input class="input-field" type="email" id="modal-email" readonly/>\n    </div>\n\n    <button class="btn-primary" onclick="submitPayment()">SUBMIT PAYMENT REQUEST</button>\n    <div style="font-family:var(--font-hud);font-size:0.65rem;color:var(--dim);text-align:center;margin-top:12px;line-height:1.8">\n      Owner will verify & activate your plan within 1-2 hrs<br>\n      Confirmation email will be sent to your registered email\n    </div>\n    <div class="auth-error" id="payment-err"></div>\n  </div>\n</div>\n\n<!-- ══════ TOAST ══════ -->\n<div class="toast" id="toast"></div>\n\n<script>\n// ══ STARS ══\n(function(){\n  const c=document.getElementById(\'stars-canvas\');\n  const ctx=c.getContext(\'2d\');\n  let W,H,stars=[];\n  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}\n  function make(){\n    stars=[];\n    for(let i=0;i<200;i++)stars.push({\n      x:Math.random()*W,y:Math.random()*H,\n      r:Math.random()*1.2+0.2,\n      o:Math.random(),speed:Math.random()*0.3+0.05,\n      twinkle:Math.random()*Math.PI*2\n    });\n  }\n  function draw(){\n    ctx.clearRect(0,0,W,H);\n    const t=Date.now()/1000;\n    stars.forEach(s=>{\n      s.twinkle+=s.speed*0.05;\n      const o=s.o*(0.5+0.5*Math.sin(s.twinkle));\n      ctx.beginPath();\n      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);\n      ctx.fillStyle=`rgba(0,255,136,${o})`;\n      ctx.fill();\n    });\n    requestAnimationFrame(draw);\n  }\n  window.addEventListener(\'resize\',()=>{resize();make();});\n  resize();make();draw();\n})();\n\n// ══ STATE ══\nlet currentUser = null;\nlet selectedModel = \'llama-3.1-8b-instant\';\nlet selectedModelInfo = null;\nlet chatHistory = [];\nlet attachedFile = null;\nlet currentDuration = \'monthly\';\nlet paymentPlan = null;\n\nconst PRICES = {\n  basic:  {monthly:99,  \'3month\':249, yearly:799},\n  pro:    {monthly:199, \'3month\':499, yearly:1599},\n  elite:  {monthly:399, \'3month\':999, yearly:2999},\n};\nconst DUR_LABEL = {monthly:\'/month\', \'3month\':\'/3 months\', yearly:\'/year\'};\n\n// ══ INIT ══\nwindow.onload = async () => {\n  const res = await fetch(\'/api/me\');\n  const data = await res.json();\n  if(data.logged_in){\n    currentUser = data;\n    showApp();\n    loadModels();\n  }\n};\n\n// ══ AUTH ══\nfunction switchTab(t){\n  document.getElementById(\'login-form\').style.display = t===\'login\'?\'\':\'none\';\n  document.getElementById(\'register-form\').style.display = t===\'register\'?\'\':\'none\';\n  document.querySelectorAll(\'.tab-btn\').forEach((b,i)=>{\n    b.classList.toggle(\'active\', (i===0&&t===\'login\')||(i===1&&t===\'register\'));\n  });\n}\n\nasync function doLogin(){\n  const email = document.getElementById(\'login-email\').value.trim();\n  const pass = document.getElementById(\'login-pass\').value;\n  document.getElementById(\'login-err\').textContent=\'\';\n  const res = await fetch(\'/api/login\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({email,password:pass})});\n  const data = await res.json();\n  if(data.error){document.getElementById(\'login-err\').textContent=data.error;return;}\n  currentUser = data;\n  const me = await (await fetch(\'/api/me\')).json();\n  currentUser = me;\n  showApp();\n  loadModels();\n}\n\nasync function doRegister(){\n  const email = document.getElementById(\'reg-email\').value.trim();\n  const pass = document.getElementById(\'reg-pass\').value;\n  const pass2 = document.getElementById(\'reg-pass2\').value;\n  document.getElementById(\'reg-err\').textContent=\'\';\n  if(pass!==pass2){document.getElementById(\'reg-err\').textContent=\'Passwords do not match\';return;}\n  const res = await fetch(\'/api/register\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({email,password:pass})});\n  const data = await res.json();\n  if(data.error){document.getElementById(\'reg-err\').textContent=data.error;return;}\n  const me = await (await fetch(\'/api/me\')).json();\n  currentUser = me;\n  showApp();\n  loadModels();\n}\n\nasync function logout(){\n  await fetch(\'/api/logout\',{method:\'POST\'});\n  currentUser=null;chatHistory=[];\n  document.getElementById(\'auth-screen\').style.display=\'flex\';\n  document.getElementById(\'main-app\').style.display=\'none\';\n}\n\nfunction showApp(){\n  document.getElementById(\'auth-screen\').style.display=\'none\';\n  document.getElementById(\'main-app\').style.display=\'flex\';\n  document.getElementById(\'main-app\').style.flexDirection=\'column\';\n  // Nav\n  const planBadge = document.getElementById(\'nav-plan-badge\');\n  planBadge.textContent = (currentUser.plan||\'free\').toUpperCase();\n  planBadge.className = \'plan-badge \'+(currentUser.plan||\'free\');\n  document.getElementById(\'nav-email\').textContent = currentUser.email;\n  if(currentUser.is_owner) document.getElementById(\'admin-tab\').style.display=\'\';\n  document.getElementById(\'modal-email\').value = currentUser.email;\n}\n\n// ══ MODELS ══\nasync function loadModels(){\n  const res = await fetch(\'/api/models\');\n  const data = await res.json();\n  const plan = currentUser.plan||\'free\';\n  const hierarchy = [\'free\',\'basic\',\'pro\',\'elite\'];\n\n  // Free models\n  const freeList = document.getElementById(\'free-model-list\');\n  freeList.innerHTML=\'\';\n  data.free.forEach(m=>{\n    freeList.appendChild(makeModelItem(m, false, false));\n  });\n\n  // Paid models\n  const paidList = document.getElementById(\'paid-model-list\');\n  paidList.innerHTML=\'\';\n  data.paid.forEach(m=>{\n    const locked = hierarchy.indexOf(plan) < hierarchy.indexOf(m.plan);\n    paidList.appendChild(makeModelItem(m, true, locked));\n  });\n\n  selectModel(\'llama-3.1-8b-instant\', {id:\'llama-3.1-8b-instant\',name:\'Llama 3.1 8B\',vision:false});\n}\n\nfunction makeModelItem(m, isPaid, locked){\n  const div = document.createElement(\'div\');\n  div.className = \'model-item\'+(locked?\' locked\':\'\');\n  div.id=\'model-\'+m.id.replace(/\\//g,\'_\').replace(/\\./g,\'_\');\n  const dotClass = locked?\'dot-locked\':isPaid?`dot-${m.plan||\'basic\'}`:\'dot-free\';\n  div.innerHTML=`\n    <div class="model-dot ${dotClass}"></div>\n    <div class="model-info">\n      <div class="model-name">${m.name}</div>\n      <div class="model-desc">${m.desc}${m.vision?\'<span class="vision-tag"> 👁</span>\':\'\'}</div>\n    </div>\n  `;\n  if(!locked) div.onclick=()=>selectModel(m.id,m);\n  return div;\n}\n\nfunction selectModel(id, info){\n  selectedModel=id;\n  selectedModelInfo=info;\n  document.querySelectorAll(\'.model-item\').forEach(el=>el.classList.remove(\'active\'));\n  const el = document.getElementById(\'model-\'+id.replace(/\\//g,\'_\').replace(/\\./g,\'_\'));\n  if(el) el.classList.add(\'active\');\n  document.getElementById(\'active-model-label\').textContent=info.name.toUpperCase();\n  document.querySelector(\'.chat-header div div:last-child\').textContent=id;\n  document.getElementById(\'vision-badge\').style.display=info.vision?\'\':\'none\';\n}\n\n// ══ CHAT ══\nfunction handleKey(e){\n  if(e.key===\'Enter\'&&!e.shiftKey){e.preventDefault();sendMessage();}\n}\nfunction autoResize(el){\n  el.style.height=\'auto\';\n  el.style.height=Math.min(el.scrollHeight,160)+\'px\';\n}\n\nfunction onFileSelect(){\n  const f=document.getElementById(\'file-input\').files[0];\n  if(!f) return;\n  attachedFile=f;\n  document.getElementById(\'file-name\').textContent=`📎 ${f.name} (${(f.size/1024).toFixed(1)}KB)`;\n  document.getElementById(\'file-preview\').style.display=\'flex\';\n}\nfunction removeFile(){\n  attachedFile=null;\n  document.getElementById(\'file-input\').value=\'\';\n  document.getElementById(\'file-preview\').style.display=\'none\';\n}\n\nasync function sendMessage(){\n  const input=document.getElementById(\'msg-input\');\n  const msg=input.value.trim();\n  if(!msg&&!attachedFile) return;\n  \n  const btn=document.getElementById(\'send-btn\');\n  btn.disabled=true;\n\n  if(msg) appendMsg(\'user\',msg);\n  input.value=\'\';input.style.height=\'auto\';\n  if(attachedFile&&!msg) appendMsg(\'user\',`📎 Uploaded: ${attachedFile.name}`);\n\n  const typingId=appendTyping();\n\n  const fd=new FormData();\n  fd.append(\'model\',selectedModel);\n  fd.append(\'message\',msg);\n  fd.append(\'history\',JSON.stringify(chatHistory));\n  if(attachedFile) fd.append(\'file\',attachedFile);\n\n  chatHistory.push({role:\'user\',content:msg||(attachedFile?`[File: ${attachedFile.name}]`:\'\')});\n  removeFile();\n\n  try{\n    const res=await fetch(\'/api/chat\',{method:\'POST\',body:fd});\n    const data=await res.json();\n    removeTyping(typingId);\n    if(data.error){\n      appendMsg(\'ai\',`⚠️ Error: ${data.error}`);\n      if(data.error.includes(\'Upgrade\')) showPage(\'plans\');\n    } else {\n      appendMsg(\'ai\',data.reply);\n      chatHistory.push({role:\'assistant\',content:data.reply});\n    }\n  } catch(e){\n    removeTyping(typingId);\n    appendMsg(\'ai\',\'⚠️ Connection error. Try again.\');\n  }\n  btn.disabled=false;\n}\n\nfunction appendMsg(role,text){\n  const msgs=document.getElementById(\'messages\');\n  const div=document.createElement(\'div\');\n  div.className=`msg ${role===\'user\'?\'user\':\'ai\'}`;\n  div.innerHTML=`\n    <div class="msg-avatar">${role===\'user\'?\'YOU\':\'AI\'}</div>\n    <div class="msg-bubble">${formatMsg(text)}</div>\n  `;\n  msgs.appendChild(div);\n  msgs.scrollTop=msgs.scrollHeight;\n}\n\nfunction formatMsg(text){\n  // Code blocks\n  text=text.replace(/```(\\w*)\\n?([\\s\\S]*?)```/g,(_,lang,code)=>`<pre><code>${escHtml(code.trim())}</code></pre>`);\n  // Inline code\n  text=text.replace(/`([^`]+)`/g,\'<code>$1</code>\');\n  // Bold\n  text=text.replace(/\\*\\*(.*?)\\*\\*/g,\'<strong style="color:var(--cyan)">$1</strong>\');\n  // Newlines\n  text=text.replace(/\\n/g,\'<br>\');\n  return text;\n}\nfunction escHtml(t){return t.replace(/&/g,\'&amp;\').replace(/</g,\'&lt;\').replace(/>/g,\'&gt;\');}\n\nfunction appendTyping(){\n  const id=\'typing-\'+Date.now();\n  const msgs=document.getElementById(\'messages\');\n  const div=document.createElement(\'div\');\n  div.className=\'msg ai\';div.id=id;\n  div.innerHTML=`<div class="msg-avatar">AI</div><div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;\n  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;\n  return id;\n}\nfunction removeTyping(id){document.getElementById(id)?.remove();}\n\n// ══ PAGES ══\nfunction showPage(page){\n  document.getElementById(\'page-chat\').style.display=page===\'chat\'?\'flex\':\'none\';\n  document.getElementById(\'page-plans\').style.display=page===\'plans\'?\'block\':\'none\';\n  document.getElementById(\'page-admin\').style.display=page===\'admin\'?\'block\':\'none\';\n  document.querySelectorAll(\'.page-tab\').forEach((t,i)=>{\n    t.classList.toggle(\'active\',[\'chat\',\'plans\',\'admin\'][i]===page);\n  });\n  if(page===\'admin\') loadAdminPayments();\n}\n\n// ══ PLANS ══\nfunction setDuration(d){\n  currentDuration=d;\n  document.querySelectorAll(\'.dur-btn\').forEach(b=>{\n    b.classList.toggle(\'active\',b.textContent.toLowerCase().includes(d.slice(0,3)));\n  });\n  [\'basic\',\'pro\',\'elite\'].forEach(p=>{\n    const price=PRICES[p][d];\n    document.getElementById(`price-${p}`).textContent=`₹${price}`;\n    document.getElementById(`price-${p}-sub`).textContent=DUR_LABEL[d];\n  });\n}\n\nfunction openPayment(plan){\n  paymentPlan=plan;\n  const amt=PRICES[plan][currentDuration];\n  document.getElementById(\'modal-amount\').textContent=`₹${amt}`;\n  document.getElementById(\'modal-info\').textContent=`${plan.charAt(0).toUpperCase()+plan.slice(1)} Hacker — ${currentDuration} plan`;\n  // Update QR with amount\n  document.getElementById(\'qr-img\').src=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=your-upi@okaxis%26pn=HackerAI%26am=${amt}`;\n  document.getElementById(\'payment-err\').textContent=\'\';\n  document.getElementById(\'utr-input\').value=\'\';\n  document.getElementById(\'payment-modal\').style.display=\'flex\';\n}\nfunction closePayment(){document.getElementById(\'payment-modal\').style.display=\'none\';}\n\nasync function submitPayment(){\n  const utr=document.getElementById(\'utr-input\').value.trim();\n  if(!utr){document.getElementById(\'payment-err\').textContent=\'Enter UTR / Transaction ID\';return;}\n  const res=await fetch(\'/api/payment/request\',{\n    method:\'POST\',headers:{\'Content-Type\':\'application/json\'},\n    body:JSON.stringify({plan:paymentPlan,duration:currentDuration,utr})\n  });\n  const data=await res.json();\n  if(data.error){document.getElementById(\'payment-err\').textContent=data.error;return;}\n  closePayment();\n  toast(\'Payment request sent! Owner will verify & activate within 1-2 hrs ✅\');\n}\n\n// ══ ADMIN ══\nasync function loadAdminPayments(){\n  const res=await fetch(\'/api/admin/payments\');\n  const data=await res.json();\n  const container=document.getElementById(\'admin-payments\');\n  if(data.error){container.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}\n  if(!data.requests.length){container.innerHTML=\'<div style="color:var(--dim);font-family:var(--font-hud)">No pending requests.</div>\';return;}\n  container.innerHTML=data.requests.map(r=>`\n    <div class="payment-row">\n      <div class="payment-info">\n        <strong>${r.email}</strong> — ${r.plan.toUpperCase()} (${r.duration})<br>\n        <span style="color:var(--cyan)">₹${r.amount}</span> &nbsp;|&nbsp; UTR: <span style="color:var(--orange)">${r.utr||\'N/A\'}</span><br>\n        <span style="color:var(--dim);font-size:0.7rem">${new Date(r.created_at).toLocaleString()} | ID: #${r.id}</span>\n      </div>\n      <button class="approve-btn" onclick="approvePayment(${r.id})">✓ APPROVE</button>\n    </div>\n  `).join(\'\');\n}\n\nasync function approvePayment(id){\n  const res=await fetch(\'/api/admin/approve\',{\n    method:\'POST\',headers:{\'Content-Type\':\'application/json\'},\n    body:JSON.stringify({request_id:id})\n  });\n  const data=await res.json();\n  if(data.ok){toast(\'Plan activated & email sent ✅\');loadAdminPayments();}\n  else toast(data.error||\'Error\',\'error\');\n}\n\n// ══ TOAST ══\nfunction toast(msg,type=\'\'){\n  const t=document.getElementById(\'toast\');\n  t.textContent=msg;t.className=\'toast show \'+(type===\'error\'?\'error\':\'\');\n  setTimeout(()=>t.className=\'toast\',3500);\n}\n\n// Init prices\nsetDuration(\'monthly\');\n</script>\n</body>\n</html>\n'
+HTML_CONTENT = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MuAPI — AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --brand: #7C3AED;
+  --brand2: #4F46E5;
+  --accent: #06B6D4;
+  --accent2: #10B981;
+  --rose: #F43F5E;
+  --amber: #F59E0B;
+  --bg: #0F0F1A;
+  --bg1: #16162A;
+  --bg2: #1E1E35;
+  --bg3: #252540;
+  --card: #1A1A30;
+  --card2: #20203A;
+  --border: rgba(124,58,237,0.15);
+  --border2: rgba(255,255,255,0.06);
+  --text: #E8E8F8;
+  --text2: #9999BB;
+  --text3: #6666AA;
+  --radius: 20px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-brand: 0 4px 24px rgba(124,58,237,0.3);
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --font2: 'Sora', sans-serif;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overflow-x: hidden;
+}
+
+/* Subtle bg mesh */
+body::before {
+  content: '';
+  position: fixed;
+  top: -30%;
+  left: -20%;
+  width: 70%;
+  height: 70%;
+  background: radial-gradient(ellipse, rgba(124,58,237,0.08) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -20%;
+  right: -15%;
+  width: 55%;
+  height: 55%;
+  background: radial-gradient(ellipse, rgba(6,182,212,0.06) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ══════════════════════
+   PHONE SHELL
+══════════════════════ */
+.phone-shell {
+  width: 390px;
+  height: 844px;
+  background: var(--bg1);
+  border-radius: 44px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* notch */
+.phone-shell::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 34px;
+  background: var(--bg);
+  border-radius: 20px;
+  z-index: 100;
+}
+
+/* ══════════════════════
+   AUTH SCREEN
+══════════════════════ */
+#auth-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 60px 28px 36px;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 36px;
+  padding-top: 20px;
+}
+
+.auth-logo-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  box-shadow: var(--shadow-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 32px;
+}
+
+.auth-logo {
+  font-family: var(--font2);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+.auth-logo span { color: var(--brand); }
+
+.auth-tagline {
+  font-size: 0.8rem;
+  color: var(--text3);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* Tab row */
+.tab-row {
+  display: flex;
+  gap: 6px;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 28px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(124,58,237,0.4);
+}
+
+/* Input group */
+.input-group { margin-bottom: 14px; }
+.input-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+  display: block;
+  letter-spacing: 0.3px;
+}
+.input-field {
+  width: 100%;
+  background: var(--bg2);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  padding: 13px 16px;
+  outline: none;
+  transition: all 0.2s;
+}
+.input-field::placeholder { color: var(--text3); }
+.input-field:focus {
+  border-color: var(--brand);
+  background: var(--bg3);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-brand);
+  margin-top: 6px;
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: scale(0.98); }
+
+.auth-error {
+  color: var(--rose);
+  font-size: 0.78rem;
+  margin-top: 10px;
+  text-align: center;
+  min-height: 18px;
+}
+
+/* ══════════════════════
+   MAIN APP
+══════════════════════ */
+#main-app {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Status bar */
+.status-bar {
+  height: 54px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 24px 8px;
+  flex-shrink: 0;
+}
+.status-time {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.status-icons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text2);
+}
+
+/* Nav */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  flex-shrink: 0;
+}
+.nav-logo {
+  font-family: var(--font2);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.nav-logo span { color: var(--brand); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+
+.plan-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+.plan-badge.free { background: var(--bg3); color: var(--text3); }
+.plan-badge.basic { background: rgba(16,185,129,0.15); color: var(--accent2); }
+.plan-badge.pro { background: rgba(6,182,212,0.15); color: var(--accent); }
+.plan-badge.elite { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+.avatar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Bottom nav tabs */
+.bottom-nav {
+  display: flex;
+  background: var(--bg2);
+  border-top: 1px solid var(--border2);
+  padding: 8px 8px 16px;
+  flex-shrink: 0;
+}
+.bottom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: all 0.2s;
+}
+.bottom-tab .tab-icon { font-size: 1.2rem; }
+.bottom-tab .tab-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text3);
+  transition: color 0.2s;
+}
+.bottom-tab.active .tab-label { color: var(--brand); }
+.bottom-tab.active {
+  background: rgba(124,58,237,0.1);
+}
+
+/* ══ CHAT PAGE ══ */
+#page-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Model selector pill */
+.model-pill-row {
+  padding: 6px 16px 10px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.model-pill-row::-webkit-scrollbar { display: none; }
+
+.model-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border2);
+  background: transparent;
+  color: var(--text3);
+  font-family: var(--font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.model-pill.active {
+  border-color: var(--brand);
+  background: rgba(124,58,237,0.15);
+  color: var(--text);
+}
+.model-pill.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.model-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.dot-free { background: var(--accent2); }
+.dot-basic { background: var(--accent2); }
+.dot-pro { background: var(--accent); }
+.dot-elite { background: var(--amber); }
+.dot-locked { background: var(--text3); }
+
+/* Chat header */
+.chat-header {
+  padding: 0 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.chat-model-info {}
+.chat-model-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.chat-model-id {
+  font-size: 0.68rem;
+  color: var(--text3);
+  margin-top: 1px;
+}
+.vision-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(6,182,212,0.15);
+  color: var(--accent);
+}
+
+/* Messages */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg3) transparent;
+}
+.messages::-webkit-scrollbar { width: 3px; }
+.messages::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 10px; }
+
+.msg { display: flex; gap: 10px; max-width: 100%; }
+.msg.user { flex-direction: row-reverse; }
+
+.msg-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.msg.ai .msg-avatar {
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  color: #fff;
+}
+.msg.user .msg-avatar {
+  background: var(--bg3);
+  color: var(--text2);
+}
+
+.msg-bubble {
+  max-width: 78%;
+  padding: 12px 15px;
+  border-radius: 18px;
+  font-size: 0.83rem;
+  line-height: 1.65;
+  word-break: break-word;
+}
+.msg.ai .msg-bubble {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-bottom-left-radius: 4px;
+  color: var(--text);
+}
+.msg.user .msg-bubble {
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg-bubble pre {
+  background: rgba(0,0,0,0.35);
+  border-radius: var(--radius-xs);
+  padding: 10px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  border-left: 2px solid var(--brand);
+}
+.msg-bubble code {
+  color: #A78BFA;
+  font-family: monospace;
+  font-size: 0.82em;
+}
+.msg-bubble pre code { color: #C4B5FD; }
+
+.typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+.typing-dot {
+  width: 6px; height: 6px;
+  background: var(--brand);
+  border-radius: 50%;
+  animation: typing 1.2s infinite;
+  opacity: 0.5;
+}
+.typing-dot:nth-child(2) { animation-delay: .15s; }
+.typing-dot:nth-child(3) { animation-delay: .3s; }
+@keyframes typing { 0%,60%,100%{opacity:0.2;transform:scale(0.8)} 30%{opacity:1;transform:scale(1)} }
+
+/* Welcome card */
+.welcome-card {
+  background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.1));
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 4px;
+}
+.welcome-card h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.welcome-card p { font-size: 0.8rem; color: var(--text2); line-height: 1.6; }
+
+/* Input bar */
+.input-bar {
+  padding: 10px 16px 12px;
+  flex-shrink: 0;
+}
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: var(--radius-xs);
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  color: var(--text2);
+}
+.file-preview .rm {
+  cursor: pointer;
+  color: var(--rose);
+  margin-left: auto;
+  font-size: 1rem;
+  font-weight: 300;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  background: var(--bg2);
+  border-radius: 20px;
+  border: 1.5px solid var(--border2);
+  padding: 8px 8px 8px 16px;
+  transition: border-color 0.2s;
+}
+.input-row:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+}
+.msg-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  outline: none;
+  resize: none;
+  max-height: 120px;
+  min-height: 24px;
+  padding: 4px 0;
+  line-height: 1.5;
+}
+.msg-input::placeholder { color: var(--text3); }
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.attach-btn {
+  background: var(--bg3);
+  color: var(--text2);
+}
+.attach-btn:hover { background: var(--brand); color: #fff; }
+.send-btn {
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(124,58,237,0.35);
+}
+.send-btn:hover { opacity: 0.9; }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ══ PLANS PAGE ══ */
+#page-plans {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 0;
+  display: none;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+.page-title {
+  font-family: var(--font2);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.page-subtitle { font-size: 0.8rem; color: var(--text3); margin-top: 3px; }
+
+/* Duration toggle */
+.duration-toggle {
+  display: flex;
+  gap: 6px;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+.dur-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  font-family: var(--font);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+.dur-btn.active {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(124,58,237,0.35);
+}
+
+/* Plan cards */
+.plan-card {
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  transition: all 0.25s;
+}
+.plan-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+}
+.plan-card.basic {
+  background: linear-gradient(135deg, rgba(16,185,129,0.08), transparent);
+}
+.plan-card.basic::before {
+  background: linear-gradient(90deg, var(--accent2), #34D399);
+}
+.plan-card.pro {
+  background: linear-gradient(135deg, rgba(6,182,212,0.08), transparent);
+}
+.plan-card.pro::before {
+  background: linear-gradient(90deg, var(--brand), var(--accent));
+}
+.plan-card.elite {
+  background: linear-gradient(135deg, rgba(245,158,11,0.1), transparent);
+  border-color: rgba(245,158,11,0.2);
+}
+.plan-card.elite::before {
+  background: linear-gradient(90deg, var(--amber), #F97316);
+}
+
+.plan-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.plan-card-name {
+  font-family: var(--font2);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.plan-card.basic .plan-card-name { color: var(--accent2); }
+.plan-card.pro .plan-card-name { color: var(--accent); }
+.plan-card.elite .plan-card-name { color: var(--amber); }
+
+.plan-price-block { text-align: right; }
+.plan-price {
+  font-family: var(--font2);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.plan-price-sub { font-size: 0.68rem; color: var(--text3); }
+
+.plan-features {
+  list-style: none;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.plan-features li {
+  font-size: 0.78rem;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plan-features li::before {
+  content: '✓';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.plan-card.basic .plan-features li::before { background: rgba(16,185,129,0.2); color: var(--accent2); }
+.plan-card.pro .plan-features li::before { background: rgba(6,182,212,0.2); color: var(--accent); }
+.plan-card.elite .plan-features li::before { background: rgba(245,158,11,0.2); color: var(--amber); }
+.plan-features li.locked { opacity: 0.4; }
+.plan-features li.locked::before { content: '–'; background: var(--bg3); color: var(--text3); }
+
+.plan-buy-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.plan-card.basic .plan-buy-btn {
+  background: rgba(16,185,129,0.15);
+  color: var(--accent2);
+  border: 1.5px solid rgba(16,185,129,0.3);
+}
+.plan-card.pro .plan-buy-btn {
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  color: #fff;
+  box-shadow: 0 3px 14px rgba(124,58,237,0.3);
+}
+.plan-card.elite .plan-buy-btn {
+  background: linear-gradient(135deg, var(--amber), #F97316);
+  color: #fff;
+  box-shadow: 0 3px 14px rgba(245,158,11,0.3);
+}
+.plan-buy-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* ══ ADMIN PAGE ══ */
+#page-admin {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: none;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--bg2);
+  border: 1.5px solid var(--border2);
+  color: var(--text2);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+}
+.refresh-btn:hover { border-color: var(--brand); color: var(--text); }
+
+.payment-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+.payment-row:hover { border-color: rgba(124,58,237,0.25); }
+.payment-info { font-size: 0.78rem; line-height: 1.8; }
+.payment-info strong { color: var(--text); }
+.payment-info .info-plan { color: var(--brand); font-weight: 700; }
+.payment-info .info-utr { color: var(--accent); }
+.payment-info .info-time { color: var(--text3); font-size: 0.7rem; }
+
+.approve-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-xs);
+  border: none;
+  background: rgba(16,185,129,0.15);
+  color: var(--accent2);
+  border: 1.5px solid rgba(16,185,129,0.3);
+  font-family: var(--font);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.approve-btn:hover { background: var(--accent2); color: #fff; }
+
+/* ══ PAYMENT MODAL ══ */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 44px;
+  overflow: hidden;
+}
+.modal {
+  background: var(--bg1);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  width: 100%;
+  padding: 28px 24px 36px;
+  max-height: 90%;
+  overflow-y: auto;
+  border-top: 1px solid var(--border2);
+}
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.modal-title {
+  font-family: var(--font2);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--bg2);
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-close:hover { color: var(--rose); }
+
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--radius);
+  margin-bottom: 18px;
+  border: 1px dashed rgba(124,58,237,0.2);
+}
+.qr-img {
+  width: 160px;
+  height: 160px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  background: #fff;
+  padding: 4px;
+}
+.qr-label { font-size: 0.72rem; color: var(--text3); margin-top: 10px; letter-spacing: 0.5px; }
+
+.amount-display {
+  font-family: var(--font2);
+  font-size: 1.8rem;
+  font-weight: 800;
+  text-align: center;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+.modal-info { font-size: 0.75rem; color: var(--text3); text-align: center; margin-bottom: 18px; }
+.modal-note { font-size: 0.68rem; color: var(--text3); text-align: center; line-height: 1.8; margin-top: 12px; }
+
+/* ══ TOAST ══ */
+.toast {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  z-index: 99;
+  opacity: 0;
+  transition: all 0.3s;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { border-color: rgba(244,63,94,0.3); color: var(--rose); }
+.toast.success { border-color: rgba(16,185,129,0.3); color: var(--accent2); }
+
+/* ══ LOGOUT DROPDOWN ══ */
+.user-menu {
+  position: absolute;
+  top: 100px;
+  right: 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  z-index: 30;
+  min-width: 160px;
+  box-shadow: var(--shadow);
+  display: none;
+}
+.user-menu.open { display: block; }
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xs);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.user-menu-item:hover { background: var(--bg3); color: var(--text); }
+.user-menu-item.danger:hover { color: var(--rose); }
+.user-email {
+  font-size: 0.68rem;
+  color: var(--text3);
+  padding: 8px 12px 4px;
+}
+
+/* Scrollbar */
+#page-plans::-webkit-scrollbar,
+#page-admin::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="phone-shell">
+
+    <!-- ══════ AUTH SCREEN ══════ -->
+    <div id="auth-screen">
+      <div class="auth-header">
+        <div class="auth-logo-wrap">🤖</div>
+        <div class="auth-logo">Mu<span>API</span></div>
+        <div class="auth-tagline">Your premium AI assistant</div>
+      </div>
+
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+        <button class="tab-btn" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <div id="login-form">
+        <div class="input-group">
+          <label class="input-label">Email</label>
+          <input class="input-field" type="email" id="login-email" placeholder="you@example.com"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Password</label>
+          <input class="input-field" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+        </div>
+        <button class="btn-primary" onclick="doLogin()">Sign In</button>
+        <div class="auth-error" id="login-err"></div>
+      </div>
+
+      <div id="register-form" style="display:none">
+        <div class="input-group">
+          <label class="input-label">Email</label>
+          <input class="input-field" type="email" id="reg-email" placeholder="you@example.com"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Password</label>
+          <input class="input-field" type="password" id="reg-pass" placeholder="Min 6 characters"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Confirm Password</label>
+          <input class="input-field" type="password" id="reg-pass2" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()"/>
+        </div>
+        <button class="btn-primary" onclick="doRegister()">Create Account</button>
+        <div class="auth-error" id="reg-err"></div>
+      </div>
+    </div>
+
+    <!-- ══════ MAIN APP ══════ -->
+    <div id="main-app">
+
+      <!-- Status bar -->
+      <div class="status-bar">
+        <div class="status-time" id="status-time">9:41</div>
+        <div class="status-icons">
+          <span>●●●</span><span>WiFi</span><span>🔋</span>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="nav">
+        <div class="nav-logo">Mu<span>API</span></div>
+        <div class="nav-right">
+          <span class="plan-badge" id="nav-plan-badge">FREE</span>
+          <button class="avatar-btn" id="avatar-btn" onclick="toggleUserMenu()">U</button>
+        </div>
+      </nav>
+
+      <!-- User menu -->
+      <div class="user-menu" id="user-menu">
+        <div class="user-email" id="nav-email">user@email.com</div>
+        <button class="user-menu-item" onclick="showPage('plans');toggleUserMenu()">💎 Upgrade Plan</button>
+        <button class="user-menu-item danger" onclick="logout()">↩ Sign Out</button>
+      </div>
+
+      <!-- ── CHAT PAGE ── -->
+      <div id="page-chat" style="display:flex;">
+
+        <!-- Model pills -->
+        <div class="model-pill-row" id="model-pill-row"></div>
+
+        <!-- Chat header -->
+        <div class="chat-header">
+          <div class="chat-model-info">
+            <div class="chat-model-name" id="active-model-label">Llama 3.1 8B</div>
+            <div class="chat-model-id" id="active-model-id">llama-3.1-8b-instant</div>
+          </div>
+          <div id="vision-badge" class="vision-badge" style="display:none">👁 Vision</div>
+        </div>
+
+        <!-- Messages -->
+        <div class="messages" id="messages">
+          <div class="welcome-card">
+            <h3>👋 Welcome to MuAPI!</h3>
+            <p>Your premium AI assistant. Select a model above, upload files or images, and start chatting. Premium models require a plan upgrade.</p>
+          </div>
+        </div>
+
+        <!-- Input bar -->
+        <div class="input-bar">
+          <div class="file-preview" id="file-preview" style="display:none">
+            <span>📎</span>
+            <span id="file-name"></span>
+            <span class="rm" onclick="removeFile()">×</span>
+          </div>
+          <div class="input-row">
+            <button class="icon-btn attach-btn" onclick="document.getElementById('file-input').click()" title="Attach">📎</button>
+            <input type="file" id="file-input" style="display:none" onchange="onFileSelect()" accept="image/*,.py,.js,.php,.html,.css,.ts,.json,.txt,.md,.sh,.rb,.go,.java,.c,.cpp,.rs,.sql,.yaml,.toml,.xml,.csv,.zip"/>
+            <textarea class="msg-input" id="msg-input" placeholder="Message MuAPI..." rows="1"
+              onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="icon-btn send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PLANS PAGE ── -->
+      <div id="page-plans">
+        <div class="page-header">
+          <div class="page-title">Choose a Plan</div>
+          <div class="page-subtitle">Unlock more powerful AI models</div>
+        </div>
+
+        <div class="duration-toggle">
+          <button class="dur-btn active" onclick="setDuration('monthly')">Monthly</button>
+          <button class="dur-btn" onclick="setDuration('3month')">3 Months</button>
+          <button class="dur-btn" onclick="setDuration('yearly')">Yearly</button>
+        </div>
+
+        <!-- BASIC -->
+        <div class="plan-card basic">
+          <div class="plan-card-header">
+            <div class="plan-card-name">Basic</div>
+            <div class="plan-price-block">
+              <div class="plan-price" id="price-basic">₹99</div>
+              <div class="plan-price-sub" id="price-basic-sub">/month</div>
+            </div>
+          </div>
+          <ul class="plan-features">
+            <li>Llama 3.3 70B Versatile</li>
+            <li>Mixtral 8x7B MoE</li>
+            <li>Llama 3.2 11B Vision</li>
+            <li>File & Code Analysis</li>
+            <li>ZIP Archive Reading</li>
+            <li class="locked">Llama 4 Scout/Maverick</li>
+            <li class="locked">DeepSeek R1 / Qwen</li>
+          </ul>
+          <button class="plan-buy-btn" onclick="openPayment('basic')">Get Basic</button>
+        </div>
+
+        <!-- PRO -->
+        <div class="plan-card pro">
+          <div class="plan-card-header">
+            <div class="plan-card-name">Pro</div>
+            <div class="plan-price-block">
+              <div class="plan-price" id="price-pro">₹199</div>
+              <div class="plan-price-sub" id="price-pro-sub">/month</div>
+            </div>
+          </div>
+          <ul class="plan-features">
+            <li>Everything in Basic</li>
+            <li>Llama 4 Scout 17B</li>
+            <li>Llama 4 Maverick 17B</li>
+            <li>Llama 3.2 90B Vision</li>
+            <li>Priority Processing</li>
+            <li>Advanced Multimodal</li>
+            <li class="locked">DeepSeek R1 / Qwen</li>
+          </ul>
+          <button class="plan-buy-btn" onclick="openPayment('pro')">Get Pro</button>
+        </div>
+
+        <!-- ELITE -->
+        <div class="plan-card elite">
+          <div class="plan-card-header">
+            <div class="plan-card-name">Elite ⚡</div>
+            <div class="plan-price-block">
+              <div class="plan-price" id="price-elite">₹399</div>
+              <div class="plan-price-sub" id="price-elite-sub">/month</div>
+            </div>
+          </div>
+          <ul class="plan-features">
+            <li>All Models Unlocked</li>
+            <li>DeepSeek R1 70B</li>
+            <li>Qwen QwQ 32B Reasoning</li>
+            <li>PlayAI Text-to-Speech</li>
+            <li>Max Context Windows</li>
+            <li>Full Vision + Files</li>
+            <li>Highest Priority</li>
+          </ul>
+          <button class="plan-buy-btn" onclick="openPayment('elite')">Go Elite</button>
+        </div>
+
+        <div style="height:20px"></div>
+      </div>
+
+      <!-- ── ADMIN PAGE ── -->
+      <div id="page-admin">
+        <div class="page-header">
+          <div class="page-title">Admin Panel</div>
+          <div class="page-subtitle">Payment approvals</div>
+        </div>
+        <button class="refresh-btn" onclick="loadAdminPayments()">↻ Refresh</button>
+        <div id="admin-payments"></div>
+      </div>
+
+      <!-- Bottom nav -->
+      <div class="bottom-nav">
+        <button class="bottom-tab active" id="tab-chat" onclick="showPage('chat')">
+          <span class="tab-icon">💬</span>
+          <span class="tab-label">Chat</span>
+        </button>
+        <button class="bottom-tab" id="tab-plans" onclick="showPage('plans')">
+          <span class="tab-icon">💎</span>
+          <span class="tab-label">Plans</span>
+        </button>
+        <button class="bottom-tab" id="tab-admin" style="display:none" onclick="showPage('admin')">
+          <span class="tab-icon">⚙️</span>
+          <span class="tab-label">Admin</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ PAYMENT MODAL ══ -->
+    <div class="modal-overlay" id="payment-modal" style="display:none" onclick="handleModalOutside(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-handle"></div>
+        <button class="modal-close" onclick="closePayment()">×</button>
+        <div class="modal-title">Complete Payment</div>
+
+        <div class="qr-container">
+          <img class="qr-img" id="qr-img"
+            src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=upi://pay?pa=your-upi@okaxis&pn=MuAPI&am=99"
+            alt="UPI QR"/>
+          <div class="qr-label">Scan to pay via UPI</div>
+        </div>
+
+        <div class="amount-display" id="modal-amount">₹99</div>
+        <div class="modal-info" id="modal-info">Basic Plan — Monthly</div>
+
+        <div class="input-group" style="margin-bottom:12px">
+          <label class="input-label">UTR / Transaction ID</label>
+          <input class="input-field" type="text" id="utr-input" placeholder="Enter UTR after payment"/>
+        </div>
+        <div class="input-group" style="margin-bottom:18px">
+          <label class="input-label">Registered Email</label>
+          <input class="input-field" type="email" id="modal-email" readonly/>
+        </div>
+
+        <button class="btn-primary" onclick="submitPayment()">Submit Payment</button>
+        <div class="modal-note">
+          Plan activated within 1–2 hrs after verification.<br>
+          Confirmation sent to your registered email.
+        </div>
+        <div class="auth-error" id="payment-err"></div>
+      </div>
+    </div>
+
+    <!-- ══ TOAST ══ -->
+    <div class="toast" id="toast"></div>
+
+  </div><!-- /phone-shell -->
+</div><!-- /app -->
+
+<script>
+// ══ STATE ══
+let currentUser = null;
+let selectedModel = 'llama-3.1-8b-instant';
+let selectedModelInfo = null;
+let chatHistory = [];
+let attachedFile = null;
+let currentDuration = 'monthly';
+let paymentPlan = null;
+let userMenuOpen = false;
+
+const PRICES = {
+  basic:  {monthly:99,  '3month':249, yearly:799},
+  pro:    {monthly:199, '3month':499, yearly:1599},
+  elite:  {monthly:399, '3month':999, yearly:2999},
+};
+const DUR_LABEL = {monthly:'/month', '3month':'/3 months', yearly:'/year'};
+
+// Status time
+function updateTime() {
+  const now = new Date();
+  let h = now.getHours(), m = now.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  document.getElementById('status-time').textContent = `${h}:${String(m).padStart(2,'0')}`;
+}
+updateTime();
+setInterval(updateTime, 10000);
+
+// ══ INIT ══
+window.onload = async () => {
+  try {
+    const res = await fetch('/api/me');
+    const data = await res.json();
+    if(data.logged_in) { currentUser = data; showApp(); loadModels(); }
+  } catch(e) {}
+};
+
+// ══ AUTH ══
+function switchTab(t) {
+  document.getElementById('login-form').style.display = t === 'login' ? '' : 'none';
+  document.getElementById('register-form').style.display = t === 'register' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && t === 'login') || (i === 1 && t === 'register'));
+  });
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  document.getElementById('login-err').textContent = '';
+  try {
+    const res = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, password:pass})});
+    const data = await res.json();
+    if(data.error) { document.getElementById('login-err').textContent = data.error; return; }
+    const me = await (await fetch('/api/me')).json();
+    currentUser = me;
+    showApp(); loadModels();
+  } catch(e) { document.getElementById('login-err').textContent = 'Connection error'; }
+}
+
+async function doRegister() {
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  document.getElementById('reg-err').textContent = '';
+  if(pass !== pass2) { document.getElementById('reg-err').textContent = 'Passwords do not match'; return; }
+  try {
+    const res = await fetch('/api/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, password:pass})});
+    const data = await res.json();
+    if(data.error) { document.getElementById('reg-err').textContent = data.error; return; }
+    const me = await (await fetch('/api/me')).json();
+    currentUser = me; showApp(); loadModels();
+  } catch(e) { document.getElementById('reg-err').textContent = 'Connection error'; }
+}
+
+async function logout() {
+  try { await fetch('/api/logout', {method:'POST'}); } catch(e) {}
+  currentUser = null; chatHistory = [];
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('main-app').style.display = 'none';
+  toggleUserMenu(true);
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  const plan = (currentUser.plan || 'free');
+  const planBadge = document.getElementById('nav-plan-badge');
+  planBadge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+  planBadge.className = 'plan-badge ' + plan;
+  document.getElementById('nav-email').textContent = currentUser.email;
+  // Avatar initials
+  document.getElementById('avatar-btn').textContent = (currentUser.email || 'U')[0].toUpperCase();
+  if(currentUser.is_owner) document.getElementById('tab-admin').style.display = '';
+  document.getElementById('modal-email').value = currentUser.email;
+}
+
+function toggleUserMenu(forceClose) {
+  userMenuOpen = forceClose ? false : !userMenuOpen;
+  document.getElementById('user-menu').classList.toggle('open', userMenuOpen);
+}
+document.addEventListener('click', (e) => {
+  if(userMenuOpen && !e.target.closest('#user-menu') && !e.target.closest('#avatar-btn')) {
+    toggleUserMenu(true);
+  }
+});
+
+// ══ MODELS ══
+async function loadModels() {
+  try {
+    const res = await fetch('/api/models');
+    const data = await res.json();
+    const plan = currentUser.plan || 'free';
+    const hierarchy = ['free','basic','pro','elite'];
+    const row = document.getElementById('model-pill-row');
+    row.innerHTML = '';
+
+    [...data.free, ...data.paid].forEach(m => {
+      const locked = data.paid.includes(m) && hierarchy.indexOf(plan) < hierarchy.indexOf(m.plan);
+      const pill = document.createElement('button');
+      pill.className = 'model-pill' + (locked ? ' locked' : '') + (m.id === selectedModel ? ' active' : '');
+      pill.id = 'mpill-' + m.id.replace(/[/.]/g,'_');
+      const dotCls = locked ? 'dot-locked' : data.free.includes(m) ? 'dot-free' : `dot-${m.plan||'basic'}`;
+      pill.innerHTML = `<div class="model-dot ${dotCls}"></div>${m.name}${m.vision ? ' 👁' : ''}`;
+      if(!locked) pill.onclick = () => selectModel(m.id, m);
+      row.appendChild(pill);
+    });
+
+    selectModel('llama-3.1-8b-instant', {id:'llama-3.1-8b-instant', name:'Llama 3.1 8B', vision:false});
+  } catch(e) {}
+}
+
+function selectModel(id, info) {
+  selectedModel = id;
+  selectedModelInfo = info;
+  document.querySelectorAll('.model-pill').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('mpill-' + id.replace(/[/.]/g,'_'));
+  if(el) el.classList.add('active');
+  document.getElementById('active-model-label').textContent = info.name;
+  document.getElementById('active-model-id').textContent = id;
+  document.getElementById('vision-badge').style.display = info.vision ? '' : 'none';
+}
+
+// ══ CHAT ══
+function handleKey(e) {
+  if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function onFileSelect() {
+  const f = document.getElementById('file-input').files[0];
+  if(!f) return;
+  attachedFile = f;
+  document.getElementById('file-name').textContent = `${f.name} (${(f.size/1024).toFixed(1)}KB)`;
+  document.getElementById('file-preview').style.display = 'flex';
+}
+function removeFile() {
+  attachedFile = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('file-preview').style.display = 'none';
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const msg = input.value.trim();
+  if(!msg && !attachedFile) return;
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+
+  if(msg) appendMsg('user', msg);
+  input.value = ''; input.style.height = 'auto';
+  if(attachedFile && !msg) appendMsg('user', `📎 ${attachedFile.name}`);
+
+  const typingId = appendTyping();
+  const fd = new FormData();
+  fd.append('model', selectedModel);
+  fd.append('message', msg);
+  fd.append('history', JSON.stringify(chatHistory));
+  if(attachedFile) fd.append('file', attachedFile);
+  chatHistory.push({role:'user', content:msg||(attachedFile?`[File: ${attachedFile.name}]`:'')});
+  removeFile();
+
+  try {
+    const res = await fetch('/api/chat', {method:'POST', body:fd});
+    const data = await res.json();
+    removeTyping(typingId);
+    if(data.error) {
+      appendMsg('ai', `⚠️ ${data.error}`);
+      if(data.error.includes('Upgrade')) showPage('plans');
+    } else {
+      appendMsg('ai', data.reply);
+      chatHistory.push({role:'assistant', content:data.reply});
+    }
+  } catch(e) {
+    removeTyping(typingId);
+    appendMsg('ai', '⚠️ Connection error. Please try again.');
+  }
+  btn.disabled = false;
+}
+
+function appendMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+    <div class="msg-bubble">${formatMsg(text)}</div>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function formatMsg(text) {
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => `<pre><code>${escHtml(code.trim())}</code></pre>`);
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function appendTyping() {
+  const id = 'typing-' + Date.now();
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = id;
+  div.innerHTML = `<div class="msg-avatar">🤖</div><div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+function removeTyping(id) { document.getElementById(id)?.remove(); }
+
+// ══ PAGES ══
+function showPage(page) {
+  document.getElementById('page-chat').style.display = page === 'chat' ? 'flex' : 'none';
+  document.getElementById('page-plans').style.display = page === 'plans' ? 'block' : 'none';
+  document.getElementById('page-admin').style.display = page === 'admin' ? 'block' : 'none';
+  ['chat','plans','admin'].forEach(p => {
+    const el = document.getElementById('tab-' + p);
+    if(el) el.classList.toggle('active', p === page);
+  });
+  if(page === 'admin') loadAdminPayments();
+}
+
+// ══ PLANS ══
+function setDuration(d) {
+  currentDuration = d;
+  document.querySelectorAll('.dur-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['monthly','3month','yearly'][i] === d);
+  });
+  ['basic','pro','elite'].forEach(p => {
+    document.getElementById(`price-${p}`).textContent = `₹${PRICES[p][d]}`;
+    document.getElementById(`price-${p}-sub`).textContent = DUR_LABEL[d];
+  });
+}
+
+function openPayment(plan) {
+  paymentPlan = plan;
+  const amt = PRICES[plan][currentDuration];
+  document.getElementById('modal-amount').textContent = `₹${amt}`;
+  document.getElementById('modal-info').textContent = `${plan.charAt(0).toUpperCase()+plan.slice(1)} Plan — ${currentDuration}`;
+  document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=upi://pay?pa=your-upi@okaxis%26pn=MuAPI%26am=${amt}`;
+  document.getElementById('payment-err').textContent = '';
+  document.getElementById('utr-input').value = '';
+  document.getElementById('payment-modal').style.display = 'flex';
+}
+function closePayment() { document.getElementById('payment-modal').style.display = 'none'; }
+function handleModalOutside(e) { if(e.target === document.getElementById('payment-modal')) closePayment(); }
+
+async function submitPayment() {
+  const utr = document.getElementById('utr-input').value.trim();
+  if(!utr) { document.getElementById('payment-err').textContent = 'Please enter your UTR / Transaction ID'; return; }
+  try {
+    const res = await fetch('/api/payment/request', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({plan:paymentPlan, duration:currentDuration, utr})
+    });
+    const data = await res.json();
+    if(data.error) { document.getElementById('payment-err').textContent = data.error; return; }
+    closePayment();
+    toast('Payment submitted! Plan will be activated within 1–2 hrs ✅', 'success');
+  } catch(e) { document.getElementById('payment-err').textContent = 'Error submitting payment'; }
+}
+
+// ══ ADMIN ══
+async function loadAdminPayments() {
+  try {
+    const res = await fetch('/api/admin/payments');
+    const data = await res.json();
+    const container = document.getElementById('admin-payments');
+    if(data.error) { container.innerHTML = `<div style="color:var(--rose);font-size:.8rem">${data.error}</div>`; return; }
+    if(!data.requests.length) { container.innerHTML = '<div style="color:var(--text3);font-size:.8rem;text-align:center;padding:20px">No pending requests 🎉</div>'; return; }
+    container.innerHTML = data.requests.map(r => `
+      <div class="payment-row">
+        <div class="payment-info">
+          <strong>${r.email}</strong><br>
+          <span class="info-plan">${r.plan.toUpperCase()} (${r.duration})</span> · <span style="color:var(--text)">₹${r.amount}</span><br>
+          <span class="info-utr">UTR: ${r.utr||'N/A'}</span><br>
+          <span class="info-time">${new Date(r.created_at).toLocaleString()} · #${r.id}</span>
+        </div>
+        <button class="approve-btn" onclick="approvePayment(${r.id})">✓ Approve</button>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function approvePayment(id) {
+  try {
+    const res = await fetch('/api/admin/approve', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({request_id:id})
+    });
+    const data = await res.json();
+    if(data.ok) { toast('Plan activated! ✅', 'success'); loadAdminPayments(); }
+    else toast(data.error || 'Error approving', 'error');
+  } catch(e) { toast('Error', 'error'); }
+}
+
+// ══ TOAST ══
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
+  setTimeout(() => t.className = 'toast', 3500);
+}
+
+// Init
+setDuration('monthly');
+</script>
+</body>
+</html>
+"""
 def get_db():
     return psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 
